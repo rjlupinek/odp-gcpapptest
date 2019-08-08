@@ -1,4 +1,5 @@
 # This is the config file for setting up the XXX GCP Project
+# 
 
 # this should be changed to the project you are setting up.
 export GOOGLE_PROJECT_ID=i-ise-04302019-playground
