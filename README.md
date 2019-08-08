@@ -1,4 +1,4 @@
-# GCP App Engine template
+# GCP App Engine template  
 This repository contains a couple of example applications and
 supporting infrastructure and configuration files for Google App Engine.
 It is meant to be used by people in the GSA (and other agencies)
