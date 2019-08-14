@@ -42,8 +42,3 @@ output "sso_cert" {
   value = "${tls_self_signed_cert.sso.cert_pem}"
   description = "SSO JWT cert"
 }
-
-output "logs_bucket" {
-  value = "${google_storage_bucket.logs-bucket.url}"
-  description = "Logs bucket for logs that are exported for ingestion by GSA IT Security"
-}
