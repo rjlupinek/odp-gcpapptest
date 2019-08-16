@@ -102,7 +102,7 @@ main () {
     echo
     printf "$usage"
     echo
-    exit
+    return
   fi
 
   #Declare variables
