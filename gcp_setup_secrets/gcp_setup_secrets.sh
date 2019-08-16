@@ -108,7 +108,7 @@ main () {
   #Declare variables
   #export ENVIRONMENT="dev"
   #export GOOGLE_PROJECT_ID=i-ise-04302019-playground
-  export SECRETS_BUCKET=gcp-key-$GOOGLE_PROJECT_ID
+  export SECRETS_BUCKET=gcp-vars-$GOOGLE_PROJECT_ID
   export KEYRING=gcp-keyring-$GOOGLE_PROJECT_ID
   export KEY=gcp-secrets-key-$GOOGLE_PROJECT_ID-$ENVIRONMENT
   export KEY_RESOURCE=projects/$GOOGLE_PROJECT_ID/locations/$LOCATION/keyRings/$KEYRING/cryptoKeys/$KEY
