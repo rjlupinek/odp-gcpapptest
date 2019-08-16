@@ -34,3 +34,6 @@
 oidc_cert.pem
 oidc_key.pem
 
+#Ignore any json files in the gcp_setup_secrets directory as they may contain secrets
+/gcp_setup_secrets/*.json
+
