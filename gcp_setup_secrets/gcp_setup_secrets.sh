@@ -99,19 +99,17 @@ main () {
   #Call the arguments function
   arguments $@
 
-  usage="This script will encrypt and upload your secrets file to a GCP storage bucket for use in your CI pipeline.\n  Usage to encrypt: \n  ./gcp_setup_secrets.sh --project-id=<Your project ID>  --environment=<dev, prod, etc>  --secrets-file=<Secrets .json file>\n  Usage to decrypt: \n  ./gcp_setup_secrets.sh --decrypt=true"
+  usage="This script will encrypt and upload your secrets file to a GCP storage bucket for use in your CI pipeline.\n  Usage to encrypt: \n  ./gcp_setup_secrets.sh --project-id=<Your project ID>  --environment=<dev, prod, etc>  --secrets-file=<Secrets .json in file>\n  Usage to decrypt: \n  ./gcp_setup_secrets.sh --project-id=<Your project ID>  --environment=<dev, prod, etc>  --secrets-file=<Secrets .json out file>--decrypt=true"
   #Test command line arguments
 
-  if [ "$DECRYPT" != "true" ]
+
+  if [ $# -eq 0 ] || [ -z "$ENVIRONMENT" ] || [ -z "$GOOGLE_PROJECT_ID" ] || [ -z "$SECRETS_IN_FILE" ]
   then
-    if [ $# -eq 0 ] || [ -z "$ENVIRONMENT" ] || [ -z "$GOOGLE_PROJECT_ID" ] || [ -z "$SECRETS_IN_FILE" ]
-    then
-      echo
-      printf "$usage"
-      echo
-      return
-    fi
-  fi 
+    echo
+    printf "$usage"
+    echo
+    return
+  fi
 
   #Declare variables
   #export ENVIRONMENT="dev"
