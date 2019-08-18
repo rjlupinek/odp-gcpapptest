@@ -130,7 +130,7 @@ main () {
     upload_encrypted_secret
   fi
 
-  if ["$DECRYPT" = "true"]
+  if [ "$DECRYPT" = "true" ]
   then
     download_encrypted_secret
   fi
