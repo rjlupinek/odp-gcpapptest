@@ -30,6 +30,10 @@ arguments () {
       SECRETS_IN_FILE="${i#*=}"
       shift # past argument=value
       ;;
+      --decrypt=*)  #Actual secrets file to encrypt
+      DECRYPT="${i#*=}"
+      shift # past argument=value
+      ;;
       *)
               # unknown option
       ;;
@@ -95,9 +99,10 @@ main () {
   #Call the arguments function
   arguments $@
 
-  usage="This script will encrypt and upload your secrets file to a GCP storage bucket for use in your CI pipeline.\n  Usage: \n  ./gcp_setup_secrets.sh --project-id=<Your project ID>  --environment=<dev, prod, etc>  --secrets-file=<Secrets .json file>"
+  usage="This script will encrypt and upload your secrets file to a GCP storage bucket for use in your CI pipeline.\n  Usage to encrypt: \n  ./gcp_setup_secrets.sh --project-id=<Your project ID>  --environment=<dev, prod, etc>  --secrets-file=<Secrets .json file>\n  Usage to decrupt: \n  ./gcp_setup_secrets.sh --decrypt=true"
   #Test command line arguments
-  if [ $# -eq 0 ] || [ -z "$ENVIRONMENT" ] || [ -z "$GOOGLE_PROJECT_ID" ] || [ -z "$SECRETS_IN_FILE" ]
+
+  if [ $# -eq 0 ] || [ -z "$ENVIRONMENT" ] || [ -z "$GOOGLE_PROJECT_ID" ] || [ -z "$SECRETS_IN_FILE" ] 
   then
     echo
     printf "$usage"
@@ -117,11 +122,17 @@ main () {
   export SECRETS_FILE=$ENVIRONMENT-vars.json
   export SECRETS_IN_FILE
 
+  if [ -z "$DECRYPT" ]
+  then 
+    create_key
+    create_bucket
+    upload_encrypted_secret
+  fi
 
-  create_key
-  create_bucket
-  upload_encrypted_secret
-
+  if ["$DECRYPT" == "TRUE"]
+  then
+    download_encrypted_secret
+  fi
 
 }
 
