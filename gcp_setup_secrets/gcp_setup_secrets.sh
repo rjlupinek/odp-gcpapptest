@@ -7,8 +7,10 @@
 #     * GCP SDK installed 
 #       *  gcloud binary
 #       *  gsutil binary
-#  Example:
+#  Example for encrypting and uploading secrets file:
 #    ./gcp_setup_secrets.sh --project-id=<Your project ID>  --environment=<dev, prod, etc>  --secrets-file=<Secrets .json file>
+#  Example for downloading and decrypting secrets file:
+#    ./gcp_setup_secrets.sh --project-id=<Your project ID>  --environment=<dev, prod, etc>  --secrets-file=<Secrets .json out file> --decrypt=true
 #########################
 
 set -e
@@ -99,7 +101,7 @@ main () {
   #Call the arguments function
   arguments $@
 
-  usage="This script will encrypt and upload your secrets file to a GCP storage bucket for use in your CI pipeline.\n  Usage to encrypt: \n  ./gcp_setup_secrets.sh --project-id=<Your project ID>  --environment=<dev, prod, etc>  --secrets-file=<Secrets .json in file>\n  Usage to decrypt: \n  ./gcp_setup_secrets.sh --project-id=<Your project ID>  --environment=<dev, prod, etc>  --secrets-file=<Secrets .json out file>--decrypt=true"
+  usage="This script will encrypt and upload your secrets file to a GCP storage bucket for use in your CI pipeline.\n  Usage to encrypt: \n  ./gcp_setup_secrets.sh --project-id=<Your project ID>  --environment=<dev, prod, etc>  --secrets-file=<Secrets .json in file>\n  Usage to decrypt: \n  ./gcp_setup_secrets.sh --project-id=<Your project ID>  --environment=<dev, prod, etc>  --secrets-file=<Secrets .json out file> --decrypt=true"
   #Test command line arguments
 
 
@@ -112,8 +114,6 @@ main () {
   fi
 
   #Declare variables
-  #export ENVIRONMENT="dev"
-  #export GOOGLE_PROJECT_ID=i-ise-04302019-playground
   export SECRETS_BUCKET=gcp-vars-$GOOGLE_PROJECT_ID
   export KEYRING=gcp-keyring-$GOOGLE_PROJECT_ID
   export KEY=gcp-secrets-key-$GOOGLE_PROJECT_ID-$ENVIRONMENT
@@ -123,6 +123,7 @@ main () {
   export SECRETS_FILE=$ENVIRONMENT-vars.json
   export SECRETS_OP_FILE
 
+  #If no value was provided for the decrypt argument then create storage bucket, encrypt and upload secrets file to storage bucket.
   if [ -z "$DECRYPT" ]
   then 
     create_key
@@ -130,12 +131,12 @@ main () {
     upload_encrypted_secret
   fi
 
+  #If decrypt argument is set to true then download and decrypt the secrets file.
   if [ "$DECRYPT" = "true" ]
   then
     download_encrypted_secret
   fi
 
 }
-
 
 main $@
