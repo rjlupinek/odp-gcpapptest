@@ -102,13 +102,16 @@ main () {
   usage="This script will encrypt and upload your secrets file to a GCP storage bucket for use in your CI pipeline.\n  Usage to encrypt: \n  ./gcp_setup_secrets.sh --project-id=<Your project ID>  --environment=<dev, prod, etc>  --secrets-file=<Secrets .json file>\n  Usage to decrypt: \n  ./gcp_setup_secrets.sh --decrypt=true"
   #Test command line arguments
 
-  if [ $# -eq 0 ] || [ -z "$ENVIRONMENT" ] || [ -z "$GOOGLE_PROJECT_ID" ] || [ -z "$SECRETS_IN_FILE" ] || [ -z "$DECRYPT" ]
+  if [ "$DECRYPT" != "true" ]
   then
-    echo
-    printf "$usage"
-    echo
-    return
-  fi
+    if [ $# -eq 0 ] || [ -z "$ENVIRONMENT" ] || [ -z "$GOOGLE_PROJECT_ID" ] || [ -z "$SECRETS_IN_FILE" ]
+    then
+      echo
+      printf "$usage"
+      echo
+      return
+    fi
+  fi 
 
   #Declare variables
   #export ENVIRONMENT="dev"
