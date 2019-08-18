@@ -26,8 +26,8 @@ arguments () {
       GOOGLE_PROJECT_ID="${i#*=}"
       shift # past argument=value
       ;;
-      --secrets-file=*)  #Actual secrets file to encrypt
-      SECRETS_IN_FILE="${i#*=}"
+      --secrets-file=*)  #Actual secrets file to encrypt or decrypt to 
+      SECRETS_OP_FILE="${i#*=}"
       shift # past argument=value
       ;;
       --decrypt=*)  #Actual secrets file to encrypt
@@ -72,7 +72,7 @@ upload_encrypted_secret () {
         --key=$KEY \
         --keyring=$KEYRING \
         --location=$LOCATION \
-        --plaintext-file=$SECRETS_IN_FILE \
+        --plaintext-file=$SECRETS_OP_FILE \
         --ciphertext-file=$SECRETS_FILE
 
   #Copy ecrypted secrets file to secrets bucket 
@@ -90,7 +90,7 @@ download_encrypted_secret () {
         --keyring=$KEYRING \
         --location=$LOCATION \
         --ciphertext-file=$SECRETS_FILE \
-        --plaintext-file=$SECRETS_FILE
+        --plaintext-file=$SECRETS_OP_FILE
 }
 
 
@@ -103,7 +103,7 @@ main () {
   #Test command line arguments
 
 
-  if [ $# -eq 0 ] || [ -z "$ENVIRONMENT" ] || [ -z "$GOOGLE_PROJECT_ID" ] || [ -z "$SECRETS_IN_FILE" ]
+  if [ $# -eq 0 ] || [ -z "$ENVIRONMENT" ] || [ -z "$GOOGLE_PROJECT_ID" ] || [ -z "$SECRETS_OP_FILE" ]
   then
     echo
     printf "$usage"
@@ -121,7 +121,7 @@ main () {
   export LOCATION=us
   export KEY_ROTATE="30d"
   export SECRETS_FILE=$ENVIRONMENT-vars.json
-  export SECRETS_IN_FILE
+  export SECRETS_OP_FILE
 
   if [ -z "$DECRYPT" ]
   then 
