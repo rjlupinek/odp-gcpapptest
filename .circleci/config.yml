@@ -84,12 +84,14 @@ jobs:
     docker:
       - image: hashicorp/terraform:0.11.13
     steps:
+      - attach_workspace:
+          at: /tmp/workspace
       - checkout
       - run:
           <<: *setgcpinitvars
       - run: 
           name: Install jq for parsing secrets file
-          command: apk add -U --no-cache jq
+          command: apt-get install jq -y
       - run:
           <<: *loadvars
       - run:
@@ -107,12 +109,14 @@ jobs:
     docker:
       - image: hashicorp/terraform:0.11.13
     steps:
+      - attach_workspace:
+          at: /tmp/workspace
       - checkout
       - run:
           <<: *setgcpinitvars
       - run: 
           name: Install jq for parsing secrets file
-          command: apk add -U --no-cache jq
+          command: apt-get install jq -y
       - run:
           <<: *loadvars
       - run:
