@@ -6,24 +6,7 @@ version: 2
 # what order the jobs run in and what depends on what.
 jobs:
 
-  get_secrets:
-    docker:
-      - image: google/cloud-sdk
-    steps:
-      - checkout
-      - preserve_workspace:
-          at: /tmp/workspace
-          paths: 
-            - secrets.json
-      - run: 
-          <<: *setupjobvarsandkey
-      - run:
-          <<: *setupcloudsdk
-      - run: &getsecrets
-          name: Get secrets file and export to environment variables
-          command: |
-            ./gcp_setup_secrets.sh --project-id=$GOOGLE_PROJECT_ID --environment=${CIRCLE_BRANCH} --secrets-file=secrets.json --decrypt=true
-            cat secrets.json
+
 
   init_terraform_state:
     docker:
@@ -47,6 +30,25 @@ jobs:
           name: create terraform state bucket
           command: |
             gsutil mb gs://gcp-terraform-state-$GOOGLE_PROJECT_ID || true
+
+  get_secrets:
+    docker:
+      - image: google/cloud-sdk
+    steps:
+      - checkout
+      - preserve_workspace:
+          at: /tmp/workspace
+          paths: 
+            - secrets.json
+      - run: 
+          <<: *setupjobvarsandkey
+      - run:
+          <<: *setupcloudsdk
+      - run: &getsecrets
+          name: Get secrets file and export to environment variables
+          command: |
+            ./gcp_setup_secrets.sh --project-id=$GOOGLE_PROJECT_ID --environment=${CIRCLE_BRANCH} --secrets-file=secrets.json --decrypt=true
+            cat secrets.json
 
   plan_terraform:
     docker:
