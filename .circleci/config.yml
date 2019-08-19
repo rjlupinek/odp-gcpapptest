@@ -5,6 +5,26 @@ version: 2
 # Workflows can be found at the bottom of this file.  They specify
 # what order the jobs run in and what depends on what.
 jobs:
+
+  get_secrets:
+    docker:
+      - image: google/cloud-sdk
+    steps:
+      - checkout
+      - preserve_workspace:
+          at: /tmp/workspace
+          paths: 
+            - secrets.json
+      - run: 
+          <<: *setupjobvarsandkey
+      - run:
+          <<: *setupcloudsdk
+      - run: &getsecrets
+          name: Get secrets file and export to environment variables
+          command: |
+            ./gcp_setup_secrets.sh --project-id=$GOOGLE_PROJECT_ID --environment=${CIRCLE_BRANCH} --secrets-file=secrets.json --decrypt=true
+            cat secrets.json
+
   init_terraform_state:
     docker:
       - image: google/cloud-sdk
@@ -14,6 +34,7 @@ jobs:
       - run: &setupjobvarsandkey
           name: set up job variables and key
           command: |
+            cat /tmp/workspace/secrets.json
             echo $(env | grep -E "^GCLOUD_SERVICE_KEY_${CIRCLE_BRANCH}=" | sed "s/^GCLOUD_SERVICE_KEY_${CIRCLE_BRANCH}=//") > ${HOME}/gcloud-service-key.json
             export GOOGLE_PROJECT_ID=$(env | awk -F= "/^GOOGLE_PROJECT_ID_${CIRCLE_BRANCH}=/ {print \$2}")
             echo "export GOOGLE_PROJECT_ID='$GOOGLE_PROJECT_ID'" >> $BASH_ENV
@@ -26,6 +47,7 @@ jobs:
           name: create terraform state bucket
           command: |
             gsutil mb gs://gcp-terraform-state-$GOOGLE_PROJECT_ID || true
+
   plan_terraform:
     docker:
       - image: hashicorp/terraform:0.11.13
@@ -40,6 +62,7 @@ jobs:
             export TF_VAR_project_id=${GOOGLE_PROJECT_ID}
             export TF_VAR_environment=${CIRCLE_BRANCH}
             cd terraform && terraform init -backend-config="bucket=gcp-terraform-state-$GOOGLE_PROJECT_ID" && terraform plan -input=false
+
   apply_terraform:
     docker:
       - image: hashicorp/terraform:0.11.13
@@ -60,6 +83,7 @@ jobs:
           root: /tmp/workspace
           paths:
             - tf-output.json
+
   store_tf_output:
     docker:
       - image: google/cloud-sdk
@@ -122,7 +146,6 @@ jobs:
               echo This is needed because you must deploy a default service before you
               echo deploy any other service.
               echo ===================================================
-
               git clone https://github.com/GoogleCloudPlatform/ruby-docs-samples
               cd ruby-docs-samples/appengine/hello_world
               bundle install
@@ -140,7 +163,6 @@ jobs:
               export INSTANCES=1
             fi
             export PROXY_URL="https://${GOOGLE_PROJECT_ID}.appspot.com/"
-
             # put the tf output into a variable so it doesn't hit the disk
             export TFOUTPUT=$(gsutil cp gs://gcp-terraform-state-$GOOGLE_PROJECT_ID/tf-output.json -)
             export SECRET_KEY_BASE=$(echo ${TFOUTPUT} | jq -r .rails_secret.value)
@@ -148,7 +170,6 @@ jobs:
             export CLOUDSQL_PASSWORD=$(echo ${TFOUTPUT} | jq -r .postgres_password.value)
             export CONNECTION_NAME=$(echo ${TFOUTPUT} | jq -r .postgres_instance.value)
             export SIGNATURE_KEY=$(echo ${TFOUTPUT} | jq -r .signature_key.value)
-
             # set the google app engine config file up
             cat <<EOF > rails-example/app.yaml
             runtime: ruby
@@ -156,7 +177,6 @@ jobs:
             service: rails
             automatic_scaling:
               min_num_instances: ${INSTANCES}
-
             env_variables:
               SECRET_KEY_BASE: "${SECRET_KEY_BASE}"
               CLOUDSQL_USERNAME: "${CLOUDSQL_USERNAME}"
@@ -171,11 +191,9 @@ jobs:
               RAILS_SERVE_STATIC_FILES: True
               RAILS_LOG_HEADERS: True
               PROXY_URL: "${PROXY_URL}"
-
             beta_settings:
               cloud_sql_instances: ${CONNECTION_NAME}
             EOF
-
             # do the deploy!  Store the version so that we can promote it later.
             mkdir /tmp/workspace
             cd rails-example
@@ -183,11 +201,9 @@ jobs:
             gcloud app deploy -q --no-promote --format=json > /tmp/railsdeploy.json
             cat /tmp/railsdeploy.json | jq -r .versions[0].id > /tmp/workspace/rails_target_version
             export TARGET_VERSION=$(cat /tmp/workspace/rails_target_version)
-
             # Store signature key and URL so that we can test it later on.
             echo ${SIGNATURE_KEY} > /tmp/workspace/rails_signature_key
             echo "https://${TARGET_VERSION}-dot-rails-dot-${GOOGLE_PROJECT_ID}.appspot.com/" > /tmp/workspace/rails_deploy_url
-
             # do db creation/migration here
             bundle exec rake appengine:exec GAE_SERVICE=rails GAE_VERSION=${TARGET_VERSION} -- bundle exec rake db:create db:migrate
       - persist_to_workspace:
@@ -196,6 +212,7 @@ jobs:
             - rails_target_version
             - rails_deploy_url
             - rails_signature_key
+
   test-rails:
     docker:
       - image: circleci/ruby:2.5.3-stretch
@@ -211,8 +228,8 @@ jobs:
             export HASHED_TOKEN=$(echo -n "${SIGNATURE_KEY}_${TOKEN}" | sha256sum | awk '{print $1}')
             export AUTH_HEADER="ZAP-Authorization"
             export AUTH_INFO="${HASHED_TOKEN}_${TOKEN}"
-
             echo "run tests here against $(cat /tmp/workspace/rails_deploy_url) with an ${AUTH_HEADER} header"
+
   owaspzap-rails:
     docker:
       - image: owasp/zap2docker-weekly
@@ -230,7 +247,6 @@ jobs:
             else
               POSTFORM=true
             fi
-
             # send special auth header that lets us scan
             export SIGNATURE_KEY=$(cat /tmp/workspace/rails_signature_key)
             export TOKEN="$(cat /proc/sys/kernel/random/uuid)_$(date +%s)"
@@ -248,12 +264,12 @@ jobs:
               -config connection.defaultUserAgent='Mozilla/5.0 (Windows NT 6.3; WOW64; rv:39.0) Gecko/20100101 Firefox/39.0 ZAP/2.7' \
               -config spider.postform=${POSTFORM} \
             "
-
             if zap-full-scan.py -m 5 -z "${ZAP_CONFIG}" -t "$(cat /tmp/workspace/rails_deploy_url)" ; then
               echo "OWASP ZAP scan found no problems.  Yay!"
             else
               echo "XXX run a script or send email to notify Admins that the OWASP ZAP scan found issues here"
             fi
+
   promote-rails:
     docker:
       - image: google/cloud-sdk
@@ -283,7 +299,6 @@ jobs:
             else
               echo no rails versions to clean up
             fi
-
   deploy-ssoproxy:
     docker:
       - image: google/cloud-sdk
@@ -302,35 +317,29 @@ jobs:
             apt install -y jq
             git clone https://github.com/pusher/oauth2_proxy
             cd oauth2_proxy
-
             # set defaults
             export COOKIE_DOMAIN="${GOOGLE_PROJECT_ID}.appspot.com"
             export TARGET_URL="https://${COOKIE_DOMAIN}/"
             export INSTANCES=1
             export IDP_CLIENT_ID=$(env | awk -F= "/^IDP_CLIENT_ID_${CIRCLE_BRANCH}=/ {print \$2}")
-
             # override defaults depending on environment
             if [ "${CIRCLE_BRANCH}" = "master" ] ; then
               export INSTANCES=2
             fi
-
             # put the tf output into a variable so it doesn't hit the disk
             export TFOUTPUT=$(gsutil cp gs://gcp-terraform-state-$GOOGLE_PROJECT_ID/tf-output.json -)
-
             # extract data for the app.yaml file
             export COOKIE_SECRET=$(echo ${TFOUTPUT} | jq -r .sso_cookie_secret.value)
             export SIGNATURE_KEY=$(echo ${TFOUTPUT} | jq -r .signature_key.value)
             export SOURCE="${TARGET_URL}"
             export DEST="https://rails-dot-${GOOGLE_PROJECT_ID}.appspot.com/"
             echo ${TFOUTPUT} | jq -r .sso_key.value > jwt_signing_key.pem
-
             cat <<EOF > app.yaml
             runtime: custom
             env: flex
             service: default
             automatic_scaling:
               min_num_instances: ${INSTANCES}
-
             env_variables:
               OAUTH2_PROXY_PROVIDER: login.gov
               OAUTH2_PROXY_HTTP_ADDRESS: 0.0.0.0:8080
@@ -351,7 +360,6 @@ jobs:
               OAUTH2_PROXY_PUBJWK_URL: "${IDP_PUBKEY_URL}"
               OAUTH2_PROXY_GCP_HEALTHCHECKS: true
             EOF
-
             # deploy!
             gcloud app deploy -q --no-promote --format=json | jq -r .versions[0].id > /tmp/workspace/sso_target_version
             echo "https://$(cat /tmp/workspace/sso_target_version)-dot-${GOOGLE_PROJECT_ID}.appspot.com/" > /tmp/workspace/sso_deploy_url
@@ -409,7 +417,6 @@ jobs:
             else
               echo no ssoproxy versions to clean up
             fi
-
   deploy-dotnet:
     docker:
       - image: gcr.io/google-appengine/aspnetcore:2.1.0
@@ -431,7 +438,6 @@ jobs:
           no_output_timeout: 30m
           command: |
             cd dotnet-example
-
             if [ "${CIRCLE_BRANCH}" = "master" ] ; then
               export DEPLOY_ENV=production
               export INSTANCES=2
@@ -439,33 +445,27 @@ jobs:
               export DEPLOY_ENV=${CIRCLE_BRANCH}
               export INSTANCES=1
             fi
-
             # put the tf output into a variable so it doesn't hit the disk
             export TFOUTPUT=$(gsutil cp gs://gcp-terraform-state-$GOOGLE_PROJECT_ID/tf-output.json -)
             export CLOUDSQL_USERNAME=$(echo ${TFOUTPUT} | jq -r .postgres_username.value)
             export CLOUDSQL_PASSWORD=$(echo ${TFOUTPUT} | jq -r .postgres_password.value)
             export CONNECTION_NAME=$(echo ${TFOUTPUT} | jq -r .postgres_instance.value)
-
             cat <<EOF > app.yaml
             runtime: aspnetcore
             env: flex
             service: dotnet-example
             automatic_scaling:
               min_num_instances: ${INSTANCES}
-
             env_variables:
               ASPNETCORE_DEPLOY_ENV: "${DEPLOY_ENV}"
               ASPNETCORE_BASICAUTH_USER: "${BASICAUTH_USER}"
               ASPNETCORE_BASICAUTH_PASSWORD: "${BASICAUTH_PASSWORD}"
               CUSTOMCONNSTR_postgres: Uid=${CLOUDSQL_USERNAME};Pwd=${CLOUDSQL_PASSWORD};Host=cloudsql;Database=dotnet-${DEPLOY_ENV}-visitors
-
             beta_settings:
               cloud_sql_instances: ${CONNECTION_NAME}=tcp:5432
             EOF
-
             # make sure database exists
             gcloud sql databases create dotnet-${DEPLOY_ENV}-visitors --instance ${DEPLOY_ENV} || true
-
             # deploy!  The app will automatically update it's schema.
             dotnet restore
             dotnet publish -c Release
@@ -505,13 +505,11 @@ jobs:
             else
               POSTFORM=true
             fi
-
             export ZAP_CONFIG=" \
               -config globalexcludeurl.url_list.url\(0\).regex='.*/robots\.txt.*' \
               -config globalexcludeurl.url_list.url\(0\).description='Exclude robots.txt' \
               -config globalexcludeurl.url_list.url\(0\).enabled=true \
               -config spider.postform=${POSTFORM}"
-
             if zap-full-scan.py -m 5 -z "${ZAP_CONFIG}" -t "$(cat  /tmp/workspace/dotnet_deploy_url)" ; then
               echo "OWASP ZAP scan found no problems.  Yay!"
             else
@@ -547,7 +545,6 @@ jobs:
             else
               echo no dotnet versions to clean up
             fi
-
   deploy-log-sync:
     docker:
       - image: google/cloud-sdk
@@ -569,7 +566,6 @@ jobs:
               gcloud -q beta scheduler jobs delete logsync-${CIRCLE_BRANCH} || true
               exit 0
             fi
-
             if [ "${CIRCLE_BRANCH}" = "master" ] ; then
               TARGET_ENV="production"
             else
@@ -577,21 +573,18 @@ jobs:
             fi
             apt install -y jq
             cd security-logging
-
             # extract data for the app.yaml file
             export TFOUTPUT=$(gsutil cp gs://gcp-terraform-state-$GOOGLE_PROJECT_ID/tf-output.json -)
             export LOGFROM=$(echo ${TFOUTPUT} | jq -r .logs_bucket.value)
             export AUTH_HEADER="GCS-Authorization"
             export AUTH_INFO="$(cat /proc/sys/kernel/random/uuid)_$(date +%s)"
             export TARGET_URL="https://${CIRCLE_BRANCH}-dot-logsync-dot-${GOOGLE_PROJECT_ID}.appspot.com/"
-
             cat <<EOF > app.yaml
             runtime: custom
             env: flex
             service: logsync
             automatic_scaling:
               min_num_instances: 1
-
             env_variables:
               FROM: ${LOGFROM}
               TO: ${LOGTO}/${CIRCLE_BRANCH}
@@ -599,10 +592,8 @@ jobs:
               AWS_SECRET_ACCESS_KEY: ${LOGTO_AWS_SECRET_ACCESS_KEY}
               AUTH_INFO: ${AUTH_INFO}
             EOF
-
             # deploy!
             gcloud app deploy -q
-
             # deploy the scheduled task that makes the logsync happen
             # You must delete a job before creating it.
             gcloud -q beta scheduler jobs delete logsync-${CIRCLE_BRANCH} || true
@@ -635,118 +626,39 @@ jobs:
               echo LOGTO not set, not scanning security-logging service
               exit 0
             fi
-
             export TARGET_URL="https://${CIRCLE_BRANCH}-dot-logsync-dot-${GOOGLE_PROJECT_ID}.appspot.com/"
-
             export ZAP_CONFIG=" \
               -config globalexcludeurl.url_list.url\(0\).regex='.*/robots\.txt.*' \
               -config globalexcludeurl.url_list.url\(0\).description='Exclude robots.txt' \
               -config globalexcludeurl.url_list.url\(0\).enabled=true \
               "
-
             if zap-full-scan.py -m 5 -z "${ZAP_CONFIG}" -t "${TARGET_URL}" ; then
               echo "OWASP ZAP scan found no problems.  Yay!"
             else
               echo "XXX run a script or send email to notify Admins that the OWASP ZAP scan found issues here"
             fi
-
-
 # These are the workflows that define what circleci actually does.
 workflows:
   version: 2
   terraform:
     jobs:
-      - init_terraform_state:
+      - get_secrets:
           filters:
             branches:
               only:
                 # This is the list of branches which will trigger a terraform run.
                 - master
                 - staging
-                - dev
+                - dev      
+      - init_terraform_state:
+          requires:
+            - get_secrets          
       - plan_terraform:
           requires:
             - init_terraform_state
-      - hold_terraform:
-          type: approval
-          requires:
-            - plan_terraform
       - apply_terraform:
           requires:
-            - hold_terraform
+            - plan_terraform
       - store_tf_output:
           requires:
             - apply_terraform
-  deploy-rails-example:
-    jobs:
-      - deploy-rails:
-          filters:
-            branches:
-              only:
-                # This is the list of branches which will be deployed automatically.
-                # Add more branches here if you want them automatically deployed.
-                # Their RAILS_ENV will get set to the branch name, or "production",
-                # if the branch is "master".
-                - master
-                - staging
-                - dev
-      - test-rails:
-          requires:
-            - deploy-rails
-      - owaspzap-rails:
-          requires:
-            - deploy-rails
-      - promote-rails:
-          requires:
-            - test-rails
-  deploy-ssoproxy-example:
-    jobs:
-      - deploy-ssoproxy:
-          filters:
-            branches:
-              only:
-                # This is the list of branches which will be deployed automatically.
-                # Add more branches here if you want them automatically deployed.
-                - master
-                - staging
-                - dev
-      - test-ssoproxy:
-          requires:
-            - deploy-ssoproxy
-      - promote-ssoproxy:
-          requires:
-            - test-ssoproxy
-  deploy-dotnet-example:
-    jobs:
-      - deploy-dotnet:
-          filters:
-            branches:
-              only:
-                # This is the list of branches which will be deployed automatically.
-                # Add more branches here if you want them automatically deployed.
-                - master
-                - staging
-                - dev
-      - test-dotnet:
-          requires:
-            - deploy-dotnet
-      - owaspzap-dotnet:
-          requires:
-            - deploy-dotnet
-      - promote-dotnet:
-          requires:
-            - test-dotnet
-  # deploy-log-sync:
-  #   jobs:
-  #     - deploy-log-sync:
-  #         filters:
-  #           branches:
-  #             only:
-  #               # This is the list of branches which will be deployed automatically.
-  #               # Add more branches here if you want them automatically deployed.
-  #               - master
-  #               - staging
-  #               - dev
-  #     - owaspzap-log-sync:
-  #         requires:
-  #           - deploy-log-sync
