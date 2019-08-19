@@ -36,7 +36,7 @@ jobs:
               echo 'export PATH=~/google-cloud-sdk/bin:$PATH' >> $BASH_ENV
               source $BASH_ENV              
             fi
-      - run: &initgcp #Authenticate using service account and configure the default project
+      - run: &initgcp-sdk #Authenticate using service account and configure the default project
           name: Initialize Google Cloud SDK
           command: |
             gcloud auth activate-service-account --key-file ${HOME}/gcloud-service-key.json
@@ -74,7 +74,7 @@ jobs:
       - run: 
           <<: *setgcpinitvars
       - run:
-          <<: *initgcp
+          <<: *initgcp-sdk
       - run:
           name: create terraform state bucket
           command: |
@@ -91,8 +91,8 @@ jobs:
           <<: *setgcpinitvars
       - run: 
           name: Install jq for parsing secrets file
-          command: apt-get install jq -y
-      - run:
+          command: apk add -U --no-cache jq
+      - run:  #Load variables
           <<: *loadvars
       - run:
           name: Initialize and plan Terraform (check plan out here before approving!)
@@ -112,12 +112,12 @@ jobs:
       - attach_workspace:
           at: /tmp/workspace
       - checkout
-      - run:
+      - run:  #Set
           <<: *setgcpinitvars
       - run: 
           name: Install jq for parsing secrets file
-          command: apt-get install jq -y
-      - run:
+          command: apk add -U --no-cache jq
+      - run:  #Load variables
           <<: *loadvars
       - run:
           name: Apply Terraform
@@ -143,7 +143,7 @@ jobs:
 #      - run:
 #          <<: *setgcpinitvars
 #      - run:
-#          <<: *initgcp
+#          <<: *initgcp-sdk
 #      - run:
 #          name: copy tf output into bucket
 #          command: |
@@ -317,7 +317,7 @@ jobs:
       - run:
           <<: *setgcpinitvars
       - run:
-          <<: *initgcp
+          <<: *initgcp-sdk
       - attach_workspace:
           at: /tmp/workspace
       - run:
@@ -347,7 +347,7 @@ jobs:
       - run:
           <<: *setgcpinitvars
       - run:
-          <<: *initgcp
+          <<: *initgcp-sdk
       - attach_workspace:
           at: /tmp/workspace
       - run:
@@ -434,7 +434,7 @@ jobs:
       - run:
           <<: *setgcpinitvars
       - run:
-          <<: *initgcp
+          <<: *initgcp-sdk
       - attach_workspace:
           at: /tmp/workspace
       - run:
@@ -562,7 +562,7 @@ jobs:
       - run:
           <<: *setgcpinitvars
       - run:
-          <<: *initgcp
+          <<: *initgcp-sdk
       - attach_workspace:
           at: /tmp/workspace
       - run:
@@ -593,7 +593,7 @@ jobs:
       - run:
           <<: *setgcpinitvars
       - run:
-          <<: *initgcp
+          <<: *initgcp-sdk
       - run:
           name: prepare app engine config, build, deploy
           no_output_timeout: 30m
@@ -677,7 +677,7 @@ jobs:
             else
               echo "XXX run a script or send email to notify Admins that the OWASP ZAP scan found issues here"
             fi
-# These are the workflows that define what circleci actually does.
+# These are the workflows that define what CircleCI actually does.
 workflows:
   version: 2
   terraform:
