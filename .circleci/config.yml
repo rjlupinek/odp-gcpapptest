@@ -672,7 +672,7 @@ workflows:
   version: 2
   terraform:
     jobs:
-      - get_secrets:
+      - gcp_setup:
           filters:
             branches:
               only:
@@ -682,7 +682,7 @@ workflows:
                 - dev      
       - init_terraform_state:
           requires:
-            - get_secrets          
+            - gcp_setup          
       - plan_terraform:
           requires:
             - init_terraform_state
