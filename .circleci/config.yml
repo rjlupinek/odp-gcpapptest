@@ -87,6 +87,9 @@ jobs:
       - checkout
       - run:
           <<: *setgcpinitvars
+      - run: 
+          name: Install jq for parsing secrets file
+          command: apk add -U --no-cache jq
       - run:
           <<: *loadvars
       - run:
@@ -107,13 +110,19 @@ jobs:
       - checkout
       - run:
           <<: *setgcpinitvars
+      - run: 
+          name: Install jq for parsing secrets file
+          command: apk add -U --no-cache jq
+      - run:
+          <<: *loadvars
       - run:
           name: Apply Terraform
           command: |
             . "${BASH_ENV}"
             export TF_VAR_project_id=$GOOGLE_PROJECT_ID
             export TF_VAR_environment=${CIRCLE_BRANCH}
-            mkdir /tmp/workspace
+            export TF_cloudsql_username="$CLOUDSQL_USERNAME"
+            export TF_cloudsql_password="$CLOUDSQL_PASSWORD"            
             cd terraform && terraform init -backend-config="bucket=gcp-terraform-state-$GOOGLE_PROJECT_ID" && terraform apply -input=false -auto-approve
             #terraform output -json > /tmp/workspace/tf-output.json
       #- persist_to_workspace:
