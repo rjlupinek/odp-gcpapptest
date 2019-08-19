@@ -692,12 +692,11 @@ workflows:
       - apply_terraform:
           requires:
             - plan_terraform
-      - store_tf_output:
-          requires:
-            - apply_terraform
-  deploy-rails-example:
-    jobs:
+
+#Rails app jobs
       - deploy-rails:
+          requires:
+            - apply_terraform        
           filters:
             branches:
               only:
@@ -717,9 +716,11 @@ workflows:
       - promote-rails:
           requires:
             - test-rails
-  deploy-ssoproxy-example:
-    jobs:
+
+#SSO Proxy app jobs
       - deploy-ssoproxy:
+          requires:
+            - apply_terraform          
           filters:
             branches:
               only:
@@ -734,9 +735,11 @@ workflows:
       - promote-ssoproxy:
           requires:
             - test-ssoproxy
-  deploy-dotnet-example:
-    jobs:
+
+#Dotnet app jobs
       - deploy-dotnet:
+          requires:
+            - apply_terraform             
           filters:
             branches:
               only:
@@ -754,9 +757,12 @@ workflows:
       - promote-dotnet:
           requires:
             - test-dotnet
- deploy-log-sync:
+
+#OWASPZAP Log sync jobs            
    jobs:
      - deploy-log-sync:
+          requires:
+            - apply_terraform           
          filters:
            branches:
              only:
