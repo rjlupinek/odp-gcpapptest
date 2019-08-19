@@ -695,3 +695,76 @@ workflows:
       - store_tf_output:
           requires:
             - apply_terraform
+  deploy-rails-example:
+    jobs:
+      - deploy-rails:
+          filters:
+            branches:
+              only:
+                # This is the list of branches which will be deployed automatically.
+                # Add more branches here if you want them automatically deployed.
+                # Their RAILS_ENV will get set to the branch name, or "production",
+                # if the branch is "master".
+                - master
+                - staging
+                - dev
+      - test-rails:
+          requires:
+            - deploy-rails
+      - owaspzap-rails:
+          requires:
+            - deploy-rails
+      - promote-rails:
+          requires:
+            - test-rails
+  deploy-ssoproxy-example:
+    jobs:
+      - deploy-ssoproxy:
+          filters:
+            branches:
+              only:
+                # This is the list of branches which will be deployed automatically.
+                # Add more branches here if you want them automatically deployed.
+                - master
+                - staging
+                - dev
+      - test-ssoproxy:
+          requires:
+            - deploy-ssoproxy
+      - promote-ssoproxy:
+          requires:
+            - test-ssoproxy
+  deploy-dotnet-example:
+    jobs:
+      - deploy-dotnet:
+          filters:
+            branches:
+              only:
+                # This is the list of branches which will be deployed automatically.
+                # Add more branches here if you want them automatically deployed.
+                - master
+                - staging
+                - dev
+      - test-dotnet:
+          requires:
+            - deploy-dotnet
+      - owaspzap-dotnet:
+          requires:
+            - deploy-dotnet
+      - promote-dotnet:
+          requires:
+            - test-dotnet
+ deploy-log-sync:
+   jobs:
+     - deploy-log-sync:
+         filters:
+           branches:
+             only:
+               # This is the list of branches which will be deployed automatically.
+               # Add more branches here if you want them automatically deployed.
+               - master
+               - staging
+               - dev
+     - owaspzap-log-sync:
+         requires:
+           - deploy-log-sync
