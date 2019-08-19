@@ -673,7 +673,7 @@ jobs:
 # These are the workflows that define what CircleCI actually does.
 workflows:
   version: 2
-  terraform:
+  build_and_deploy:
     jobs:
       - gcp_setup:
           filters:
