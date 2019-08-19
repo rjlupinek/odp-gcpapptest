@@ -36,10 +36,6 @@ jobs:
       - image: google/cloud-sdk
     steps:
       - checkout
-      - preserve_workspace:
-          at: /tmp/workspace
-          paths: 
-            - secrets.json
       - run: 
           <<: *setupjobvarsandkey
       - run:
@@ -49,6 +45,10 @@ jobs:
           command: |
             ./gcp_setup_secrets.sh --project-id=$GOOGLE_PROJECT_ID --environment=${CIRCLE_BRANCH} --secrets-file=secrets.json --decrypt=true
             cat secrets.json
+      - persist_workspace:
+          at: /tmp/workspace
+          paths: 
+            - secrets.json
 
   plan_terraform:
     docker:
