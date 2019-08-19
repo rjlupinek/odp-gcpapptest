@@ -171,7 +171,7 @@ jobs:
       - run:
           <<: *setgcpinitvars
       - run:
-          << *initgcp-nongoogle
+          <<: *initgcp-nongoogle
       - run:  #Load decrypted variables
           <<: *loadvars
       - run:
@@ -482,7 +482,7 @@ jobs:
               export INSTANCES=1
             fi
             # put the tf output into a variable so it doesn't hit the disk
-            export CONNECTION_NAME=$(echo ${TFOUTPUT} | jq -r .postgres_instance.value)
+            export CONNECTION_NAME="${GOOGLE_PROJECT_ID}:us-east1:postgres"
             cat <<EOF > app.yaml
             runtime: aspnetcore
             env: flex
