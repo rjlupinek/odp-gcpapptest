@@ -99,6 +99,7 @@ jobs:
           command: |
             . "${BASH_ENV}"
             uname -a
+            echo "$CLOUDSQL_USERNAME"
             export TF_VAR_project_id=${GOOGLE_PROJECT_ID}
             export TF_VAR_environment=${CIRCLE_BRANCH}
             export TF_cloudsql_username="$CLOUDSQL_USERNAME"
@@ -123,6 +124,7 @@ jobs:
           name: Apply Terraform
           command: |
             . "${BASH_ENV}"
+
             export TF_VAR_project_id=$GOOGLE_PROJECT_ID
             export TF_VAR_environment=${CIRCLE_BRANCH}
             export TF_cloudsql_username="$CLOUDSQL_USERNAME"
