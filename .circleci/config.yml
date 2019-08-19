@@ -46,7 +46,7 @@ jobs:
             ./gcp_setup_secrets.sh --project-id=$GOOGLE_PROJECT_ID --environment=${CIRCLE_BRANCH} --secrets-file=secrets.json --decrypt=true
             cat secrets.json
       - persist_to_workspace:
-          at: /tmp/workspace
+          root: /tmp/workspace
           paths: 
             - secrets.json
 
