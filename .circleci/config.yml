@@ -42,6 +42,7 @@ jobs:
       - run: &getsecrets
           name: Get secrets file and export to environment variables
           command: |
+            cd gcp_setup_secrets/
             ./gcp_setup_secrets.sh --project-id=$GOOGLE_PROJECT_ID --environment=${CIRCLE_BRANCH} --secrets-file=secrets.json --decrypt=true
             cat secrets.json
       - persist_to_workspace:
