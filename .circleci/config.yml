@@ -7,6 +7,59 @@ version: 2
 jobs:
 
 
+  gcp_setup:
+    docker:
+      - image: ubuntu:latest
+    steps:
+      - checkout
+      - run: &setgcpinitvars
+          name: set up job variables and key
+          command: |
+            echo $(env | grep -E "^GCLOUD_SERVICE_KEY_${CIRCLE_BRANCH}=" | sed "s/^GCLOUD_SERVICE_KEY_${CIRCLE_BRANCH}=//") > ${HOME}/gcloud-service-key.json
+            export GOOGLE_PROJECT_ID=$(env | awk -F= "/^GOOGLE_PROJECT_ID_${CIRCLE_BRANCH}=/ {print \$2}")
+            echo "export GOOGLE_PROJECT_ID='$GOOGLE_PROJECT_ID'" >> $BASH_ENV
+      - run: &initgcp-nongoogle
+          name: Setup Google Cloud SDK
+          command: |           
+            export GCLOUD_SDK_VERSION=258
+            curl https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-$GCLOUD_SDK_VERSION.0.0-linux-x86_64.tar.gz -o ./gcloud-sdk.tar.gz
+            tar xzf gcloud-sdk.tar.gz -C ~
+            rm gcloud-sdk.tar.gz
+            export PATH=~/google-cloud-sdk/bin:$PATH
+            gcloud auth activate-service-account --key-file ${HOME}/gcloud-service-key.json
+            gcloud config set project $GOOGLE_PROJECT_ID
+            echo 'export PATH=~/google-cloud-sdk/bin:$PATH' >> $BASH_ENV
+            source $BASH_ENV
+      - run: &initgcp
+          name: Setup Google Cloud SDK
+          command: |
+            gcloud auth activate-service-account --key-file ${HOME}/gcloud-service-key.json
+            gcloud config set project $GOOGLE_PROJECT_ID
+      - run: &getvars
+          name: Downloand and decrypt secrets file
+          command: |
+            cd gcp_setup_secrets/
+            mkdir /tmp/workspace || true
+            ./gcp_setup_secrets.sh --project-id=$GOOGLE_PROJECT_ID --environment=${CIRCLE_BRANCH} --secrets-file=/tmp/workspace/vars.json --decrypt=true
+            cat /tmp/workspace/vars.json
+      - run: &loadvars
+          name: Load secrets into environment variables
+          command: |
+            OLDIFS="$IFS"
+            IFS=$'\n'
+            export SECRETS_FILE="/tmp/workspace/vars.json"
+            for env_var in $(jq 'to_entries|map("\(.key)='"'"'\(.value|tostring)'"'"'")|.[]' $SECRETS_FILE | sed -e 's/^"//' -e 's/"$//' )
+            do
+              echo $IFS
+              echo $env_var
+              export $env_var
+            done  
+            IFS="$OLDIFS"
+      - persist_to_workspace:
+          root: /tmp/workspace
+          paths: 
+            - vars.json
+
 
   init_terraform_state:
     docker:
@@ -14,43 +67,16 @@ jobs:
     steps:
       - attach_workspace:
           at: /tmp/workspace
-      - run: &setupjobvarsandkey
-          name: set up job variables and key
-          command: |
-            echo $(env | grep -E "^GCLOUD_SERVICE_KEY_${CIRCLE_BRANCH}=" | sed "s/^GCLOUD_SERVICE_KEY_${CIRCLE_BRANCH}=//") > ${HOME}/gcloud-service-key.json
-            export GOOGLE_PROJECT_ID=$(env | awk -F= "/^GOOGLE_PROJECT_ID_${CIRCLE_BRANCH}=/ {print \$2}")
-            echo "export GOOGLE_PROJECT_ID='$GOOGLE_PROJECT_ID'" >> $BASH_ENV
-      - run: &setupcloudsdk
-          name: Setup Google Cloud SDK
-          command: |
-            gcloud auth activate-service-account --key-file ${HOME}/gcloud-service-key.json
-            gcloud config set project $GOOGLE_PROJECT_ID
+      - run: 
+          <<: *setgcpinitvars
+      - run:
+          <<: *initgcp
       - run:
           name: create terraform state bucket
           command: |
             gsutil mb gs://gcp-terraform-state-$GOOGLE_PROJECT_ID || true
 
-  get_secrets:
-    docker:
-      - image: google/cloud-sdk
-    steps:
-      - checkout
-      - run: 
-          <<: *setupjobvarsandkey
-      - run:
-          <<: *setupcloudsdk
-      - run: &getsecrets
-          name: Get secrets file and export to environment variables
-          command: |
-            cd gcp_setup_secrets/
-            mkdir /tmp/workspace || true
-            ./gcp_setup_secrets.sh --project-id=$GOOGLE_PROJECT_ID --environment=${CIRCLE_BRANCH} --secrets-file=/tmp/workspace/secrets.json --decrypt=true
-            cat /tmp/workspace/secrets.json
-            
-      - persist_to_workspace:
-          root: /tmp/workspace
-          paths: 
-            - secrets.json
+
 
   plan_terraform:
     docker:
@@ -58,7 +84,7 @@ jobs:
     steps:
       - checkout
       - run:
-          <<: *setupjobvarsandkey
+          <<: *setgcpinitvars
       - run:
           name: Initialize and plan Terraform (check plan out here before approving!)
           command: |
@@ -73,7 +99,7 @@ jobs:
     steps:
       - checkout
       - run:
-          <<: *setupjobvarsandkey
+          <<: *setgcpinitvars
       - run:
           name: Apply Terraform
           command: |
@@ -95,9 +121,9 @@ jobs:
       - attach_workspace:
           at: /tmp/workspace
       - run:
-          <<: *setupjobvarsandkey
+          <<: *setgcpinitvars
       - run:
-          <<: *setupcloudsdk
+          <<: *initgcp
       - run:
           name: copy tf output into bucket
           command: |
@@ -123,8 +149,8 @@ jobs:
           paths:
             - rails-example/vendor/bundle
       - run:
-          <<: *setupjobvarsandkey
-      - run: &setupcloudsdk-nongoogle
+          <<: *setgcpinitvars
+      - run: &initgcp-nongoogle
           name: Setup Google Cloud SDK
           command: |
             export GCLOUD_SDK_VERSION=244
@@ -279,9 +305,9 @@ jobs:
       - image: google/cloud-sdk
     steps:
       - run:
-          <<: *setupjobvarsandkey
+          <<: *setgcpinitvars
       - run:
-          <<: *setupcloudsdk
+          <<: *initgcp
       - attach_workspace:
           at: /tmp/workspace
       - run:
@@ -309,9 +335,9 @@ jobs:
     steps:
       - checkout
       - run:
-          <<: *setupjobvarsandkey
+          <<: *setgcpinitvars
       - run:
-          <<: *setupcloudsdk
+          <<: *initgcp
       - attach_workspace:
           at: /tmp/workspace
       - run:
@@ -396,9 +422,9 @@ jobs:
       - image: google/cloud-sdk
     steps:
       - run:
-          <<: *setupjobvarsandkey
+          <<: *setgcpinitvars
       - run:
-          <<: *setupcloudsdk
+          <<: *initgcp
       - attach_workspace:
           at: /tmp/workspace
       - run:
@@ -432,9 +458,9 @@ jobs:
             apt-get update
             apt install -y python python-dev python3 python3-dev python-pip git jq
       - run:
-          <<: *setupjobvarsandkey
+          <<: *setgcpinitvars
       - run:
-          <<: *setupcloudsdk-nongoogle
+          <<: *initgcp-nongoogle
       - attach_workspace:
           at: /tmp/workspace
       - run:
@@ -524,9 +550,9 @@ jobs:
       - image: google/cloud-sdk
     steps:
       - run:
-          <<: *setupjobvarsandkey
+          <<: *setgcpinitvars
       - run:
-          <<: *setupcloudsdk
+          <<: *initgcp
       - attach_workspace:
           at: /tmp/workspace
       - run:
@@ -555,9 +581,9 @@ jobs:
     steps:
       - checkout
       - run:
-          <<: *setupjobvarsandkey
+          <<: *setgcpinitvars
       - run:
-          <<: *setupcloudsdk
+          <<: *initgcp
       - run:
           name: prepare app engine config, build, deploy
           no_output_timeout: 30m
