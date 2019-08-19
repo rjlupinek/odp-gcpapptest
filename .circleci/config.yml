@@ -123,8 +123,8 @@ jobs:
             . "${BASH_ENV}"
             export TF_VAR_project_id=$GOOGLE_PROJECT_ID
             export TF_VAR_environment=${CIRCLE_BRANCH}
-            export TF_cloudsql_username="$CLOUDSQL_USERNAME"
-            export TF_cloudsql_password="$CLOUDSQL_PASSWORD"            
+            export TF_VAR_cloudsql_username="$CLOUDSQL_USERNAME"
+            export TF_VAR_cloudsql_password="$CLOUDSQL_PASSWORD"            
             cd terraform && terraform init -backend-config="bucket=gcp-terraform-state-$GOOGLE_PROJECT_ID" && terraform apply -input=false -auto-approve
             #terraform output -json > /tmp/workspace/tf-output.json
       #- persist_to_workspace:
@@ -151,6 +151,8 @@ jobs:
     docker:
       - image: circleci/ruby:2.5.3-stretch
     steps:
+      - attach_workspace:
+          at: /tmp/workspace
       - checkout
       - restore_cache:
           keys:
@@ -170,6 +172,8 @@ jobs:
           <<: *setgcpinitvars
       - run:
           << *initgcp-nongoogle
+      - run:  #Load decrypted variables
+          <<: *loadvars
       - run:
           name: create an empty default app if needed for bootstrapping
           no_output_timeout: 20m
@@ -201,13 +205,7 @@ jobs:
               export INSTANCES=1
             fi
             export PROXY_URL="https://${GOOGLE_PROJECT_ID}.appspot.com/"
-            # put the tf output into a variable so it doesn't hit the disk
-            export TFOUTPUT=$(gsutil cp gs://gcp-terraform-state-$GOOGLE_PROJECT_ID/tf-output.json -)
-            export SECRET_KEY_BASE=$(echo ${TFOUTPUT} | jq -r .rails_secret.value)
-            export CLOUDSQL_USERNAME=$(echo ${TFOUTPUT} | jq -r .postgres_username.value)
-            export CLOUDSQL_PASSWORD=$(echo ${TFOUTPUT} | jq -r .postgres_password.value)
-            export CONNECTION_NAME=$(echo ${TFOUTPUT} | jq -r .postgres_instance.value)
-            export SIGNATURE_KEY=$(echo ${TFOUTPUT} | jq -r .signature_key.value)
+            export CONNECTION_NAME="${GOOGLE_PROJECT_ID}:us-east1:postgres"
             # set the google app engine config file up
             cat <<EOF > rails-example/app.yaml
             runtime: ruby
@@ -348,6 +346,8 @@ jobs:
           <<: *initgcp-sdk
       - attach_workspace:
           at: /tmp/workspace
+      - run:  #Load decrypted variables
+          <<: *loadvars
       - run:
           name: prepare app engine config, build, deploy
           no_output_timeout: 30m
@@ -364,14 +364,10 @@ jobs:
             if [ "${CIRCLE_BRANCH}" = "master" ] ; then
               export INSTANCES=2
             fi
-            # put the tf output into a variable so it doesn't hit the disk
-            export TFOUTPUT=$(gsutil cp gs://gcp-terraform-state-$GOOGLE_PROJECT_ID/tf-output.json -)
             # extract data for the app.yaml file
-            export COOKIE_SECRET=$(echo ${TFOUTPUT} | jq -r .sso_cookie_secret.value)
-            export SIGNATURE_KEY=$(echo ${TFOUTPUT} | jq -r .signature_key.value)
             export SOURCE="${TARGET_URL}"
             export DEST="https://rails-dot-${GOOGLE_PROJECT_ID}.appspot.com/"
-            echo ${TFOUTPUT} | jq -r .sso_key.value > jwt_signing_key.pem
+            echo ${SSO_KEY} > jwt_signing_key.pem
             cat <<EOF > app.yaml
             runtime: custom
             env: flex
@@ -471,6 +467,8 @@ jobs:
           <<: *initgcp-nongoogle
       - attach_workspace:
           at: /tmp/workspace
+      - run:  #Load decrypted variables
+          <<: *loadvars
       - run:
           name: prepare app engine config, build, deploy
           no_output_timeout: 30m
@@ -484,9 +482,6 @@ jobs:
               export INSTANCES=1
             fi
             # put the tf output into a variable so it doesn't hit the disk
-            export TFOUTPUT=$(gsutil cp gs://gcp-terraform-state-$GOOGLE_PROJECT_ID/tf-output.json -)
-            export CLOUDSQL_USERNAME=$(echo ${TFOUTPUT} | jq -r .postgres_username.value)
-            export CLOUDSQL_PASSWORD=$(echo ${TFOUTPUT} | jq -r .postgres_password.value)
             export CONNECTION_NAME=$(echo ${TFOUTPUT} | jq -r .postgres_instance.value)
             cat <<EOF > app.yaml
             runtime: aspnetcore
