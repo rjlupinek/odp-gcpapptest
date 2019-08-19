@@ -55,8 +55,7 @@ jobs:
             export SECRETS_FILE="/tmp/workspace/vars.json"
             for env_var in $(jq 'to_entries|map("\(.key)='"'"'\(.value|tostring)'"'"'")|.[]' $SECRETS_FILE | sed -e 's/^"//' -e 's/"$//' )
             do
-              echo $IFS
-              echo $env_var
+              echo $env_var >> $BASH_ENV
               export $env_var
             done  
             IFS="$OLDIFS"
