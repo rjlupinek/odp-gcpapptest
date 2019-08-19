@@ -692,7 +692,6 @@ workflows:
       - apply_terraform:
           requires:
             - plan_terraform
-
 #Rails app jobs
       - deploy-rails:
           requires:
@@ -716,7 +715,6 @@ workflows:
       - promote-rails:
           requires:
             - test-rails
-
 #SSO Proxy app jobs
       - deploy-ssoproxy:
           requires:
@@ -735,7 +733,6 @@ workflows:
       - promote-ssoproxy:
           requires:
             - test-ssoproxy
-
 #Dotnet app jobs
       - deploy-dotnet:
           requires:
@@ -757,7 +754,6 @@ workflows:
       - promote-dotnet:
           requires:
             - test-dotnet
-
 #OWASPZAP Log sync jobs            
      - deploy-log-sync:
           requires:
