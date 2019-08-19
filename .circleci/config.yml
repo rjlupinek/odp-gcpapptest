@@ -231,7 +231,6 @@ jobs:
               cloud_sql_instances: ${CONNECTION_NAME}
             EOF
             # do the deploy!  Store the version so that we can promote it later.
-            mkdir /tmp/workspace
             cd rails-example
             bundle exec bin/rails assets:precompile
             gcloud app deploy -q --no-promote --format=json > /tmp/railsdeploy.json
