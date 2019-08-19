@@ -759,7 +759,6 @@ workflows:
             - test-dotnet
 
 #OWASPZAP Log sync jobs            
-   jobs:
      - deploy-log-sync:
           requires:
             - apply_terraform           
