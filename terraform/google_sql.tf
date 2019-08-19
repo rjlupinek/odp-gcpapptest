@@ -14,13 +14,8 @@ resource "google_sql_database_instance" "postgres" {
   }
 }
 
-resource "random_string" "postgres_password" {
-  length  = 24
-  special = false
-}
-
 resource "google_sql_user" "postgres" {
-  name     = "postgres"
-  password = "${random_string.postgres_password.result}"
+  name     = "${var.cloudsql_username}"
+  password = "${var.cloudsql_password}"
   instance = "${google_sql_database_instance.postgres.name}"
 }

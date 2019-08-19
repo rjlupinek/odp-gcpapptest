@@ -10,3 +10,11 @@ variable "environment" {
 variable "project_id" {
   type = "string"
 }
+
+variable "cloudsql_username" {
+  type = "string"
+}
+
+variable "cloudsql_password" {
+  type = "string"
+}

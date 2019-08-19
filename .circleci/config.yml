@@ -12,13 +12,13 @@ jobs:
       - image: google/cloud-sdk
     steps:
       - checkout
-      - run: &setgcpinitvars
+      - run: &setgcpinitvars  #Create the service account json file for authentication,and set the project id from CircleCI variables..
           name: set up job variables and key
           command: |
             echo $(env | grep -E "^GCLOUD_SERVICE_KEY_${CIRCLE_BRANCH}=" | sed "s/^GCLOUD_SERVICE_KEY_${CIRCLE_BRANCH}=//") > ${HOME}/gcloud-service-key.json
             export GOOGLE_PROJECT_ID=$(env | awk -F= "/^GOOGLE_PROJECT_ID_${CIRCLE_BRANCH}=/ {print \$2}")
             echo "export GOOGLE_PROJECT_ID='$GOOGLE_PROJECT_ID'" >> $BASH_ENV
-      - run: &initgcp-nongoogle
+      - run: &initgcp-nongoogle   #Install the Google Clound SDK if it is required.  None google/cloud-sdk images will most likely require this.
           name: Setup Google Cloud SDK
           command: |   
             echo "Installing Google Cloud SDK..."        
@@ -36,19 +36,18 @@ jobs:
               echo 'export PATH=~/google-cloud-sdk/bin:$PATH' >> $BASH_ENV
               source $BASH_ENV              
             fi
-      - run: &initgcp
+      - run: &initgcp #Authenticate using service account and configure the default project
           name: Initialize Google Cloud SDK
           command: |
             gcloud auth activate-service-account --key-file ${HOME}/gcloud-service-key.json
             gcloud config set project $GOOGLE_PROJECT_ID
-      - run: &getvars
-          name: Downloand and decrypt secrets file
+      - run: &getvars #Pull the secrets file for this project and decrypt it.
+          name: Download and decrypt secrets file
           command: |
             cd gcp_setup_secrets/
             mkdir /tmp/workspace || true
             ./gcp_setup_secrets.sh --project-id=$GOOGLE_PROJECT_ID --environment=${CIRCLE_BRANCH} --secrets-file=/tmp/workspace/vars.json --decrypt=true
-            cat /tmp/workspace/vars.json
-      - run: &loadvars
+      - run: &loadvars #Load the secrets file as environment variables.
           name: Load secrets into environment variables
           command: |
             OLDIFS="$IFS"
@@ -61,11 +60,10 @@ jobs:
               export $env_var
             done  
             IFS="$OLDIFS"
-      - persist_to_workspace:
+      - persist_to_workspace:  #Save the decrypted secrets to vars.json and persist between jobs
           root: /tmp/workspace
           paths: 
             - vars.json
-
 
   init_terraform_state:
     docker:
@@ -82,8 +80,6 @@ jobs:
           command: |
             gsutil mb gs://gcp-terraform-state-$GOOGLE_PROJECT_ID || true
 
-
-
   plan_terraform:
     docker:
       - image: hashicorp/terraform:0.11.13
@@ -92,11 +88,15 @@ jobs:
       - run:
           <<: *setgcpinitvars
       - run:
+          <<: *loadvars
+      - run:
           name: Initialize and plan Terraform (check plan out here before approving!)
           command: |
             . "${BASH_ENV}"
             export TF_VAR_project_id=${GOOGLE_PROJECT_ID}
             export TF_VAR_environment=${CIRCLE_BRANCH}
+            export TF_cloudsql_username = "$CLOUDSQL_USERNAME"
+            export TF_cloudsql_password = "$CLOUDSQL_PASSWORD"
             cd terraform && terraform init -backend-config="bucket=gcp-terraform-state-$GOOGLE_PROJECT_ID" && terraform plan -input=false
 
   apply_terraform:
@@ -114,26 +114,26 @@ jobs:
             export TF_VAR_environment=${CIRCLE_BRANCH}
             mkdir /tmp/workspace
             cd terraform && terraform init -backend-config="bucket=gcp-terraform-state-$GOOGLE_PROJECT_ID" && terraform apply -input=false -auto-approve
-            terraform output -json > /tmp/workspace/tf-output.json
-      - persist_to_workspace:
-          root: /tmp/workspace
-          paths:
-            - tf-output.json
+            #terraform output -json > /tmp/workspace/tf-output.json
+      #- persist_to_workspace:
+      #    root: /tmp/workspace
+      #    paths:
+      #      - tf-output.json
 
-  store_tf_output:
-    docker:
-      - image: google/cloud-sdk
-    steps:
-      - attach_workspace:
-          at: /tmp/workspace
-      - run:
-          <<: *setgcpinitvars
-      - run:
-          <<: *initgcp
-      - run:
-          name: copy tf output into bucket
-          command: |
-            gsutil cp /tmp/workspace/tf-output.json gs://gcp-terraform-state-$GOOGLE_PROJECT_ID/tf-output.json
+#  store_tf_output:
+#    docker:
+#      - image: google/cloud-sdk
+#    steps:
+#      - attach_workspace:
+#          at: /tmp/workspace
+#      - run:
+#          <<: *setgcpinitvars
+#      - run:
+#          <<: *initgcp
+#      - run:
+#          name: copy tf output into bucket
+#          command: |
+#            gsutil cp /tmp/workspace/tf-output.json gs://gcp-terraform-state-$GOOGLE_PROJECT_ID/tf-output.json
  
   deploy-rails:
     docker:
@@ -156,18 +156,8 @@ jobs:
             - rails-example/vendor/bundle
       - run:
           <<: *setgcpinitvars
-      - run: &initgcp-nongoogle
-          name: Setup Google Cloud SDK
-          command: |
-            export GCLOUD_SDK_VERSION=244
-            curl https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-$GCLOUD_SDK_VERSION.0.0-linux-x86_64.tar.gz -o ./gcloud-sdk.tar.gz
-            tar xzf gcloud-sdk.tar.gz -C ~
-            rm gcloud-sdk.tar.gz
-            export PATH=~/google-cloud-sdk/bin:$PATH
-            gcloud auth activate-service-account --key-file ${HOME}/gcloud-service-key.json
-            gcloud config set project $GOOGLE_PROJECT_ID
-            echo 'export PATH=~/google-cloud-sdk/bin:$PATH' >> $BASH_ENV
-            source $BASH_ENV
+      - run:
+          << *initgcp-nongoogle
       - run:
           name: create an empty default app if needed for bootstrapping
           no_output_timeout: 20m
