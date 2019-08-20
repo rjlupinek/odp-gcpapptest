@@ -55,11 +55,11 @@ jobs:
             export SECRETS_FILE="/tmp/workspace/vars.json"
             for env_var in $(jq 'to_entries|map("\(.key)='"'"'\(.value|tostring)'"'"'")|.[]' $SECRETS_FILE | sed -e 's/^"//' -e 's/"$//' )
             do
-              echo $env_var >> $BASH_ENV
+              echo "export $env_var" >> $BASH_ENV
               export $env_var
             done  
             IFS="$OLDIFS"
-            . "${BASH_ENV}"
+
       - persist_to_workspace:  #Save the decrypted secrets to vars.json and persist between jobs
           root: /tmp/workspace
           paths: 
