@@ -198,22 +198,6 @@ jobs:
           no_output_timeout: 20m
           command: |
             #Load environment variables 
-            echo "*** Pre test"
-            echo " username ${CLOUDSQL_USERNAME}"
-            echo " username2 $CLOUDSQL_USERNAME"
-
-            echo " secret base 1 ${SECRET_KEY_BASE}"
-            echo " secret base 2 $SECRET_KEY_BASE"
-
-            . "${BASH_ENV}"
-
-            echo "*** Post test"
-            echo " username ${CLOUDSQL_USERNAME}"
-            echo " username2 $CLOUDSQL_USERNAME"
-
-            echo " secret base 1 ${SECRET_KEY_BASE}"
-            echo " secret base 2 $SECRET_KEY_BASE"
-
             if [ "${CIRCLE_BRANCH}" = "master" ] ; then
               export RAILS_ENV=production
               export INSTANCES=2
@@ -247,6 +231,9 @@ jobs:
             beta_settings:
               cloud_sql_instances: ${CONNECTION_NAME}
             EOF
+
+            cat rails-example/app.yaml
+
             # do the deploy!  Store the version so that we can promote it later.
             cd rails-example
             bundle exec bin/rails assets:precompile
@@ -368,7 +355,6 @@ jobs:
           name: prepare app engine config, build, deploy
           no_output_timeout: 30m
           command: |
-            . "${BASH_ENV}"
             apt install -y jq
             git clone https://github.com/pusher/oauth2_proxy
             cd oauth2_proxy
