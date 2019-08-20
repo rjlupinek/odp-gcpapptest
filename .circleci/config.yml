@@ -200,7 +200,7 @@ jobs:
           no_output_timeout: 20m
           command: |
             #Load CIRCLE  environment variables 
-            . "${BASH_ENV}"
+            source "${BASH_ENV}"
             #Set the number of intial instances to start to support the application.
             if [ "${CIRCLE_BRANCH}" = "master" ] ; then
               export RAILS_ENV=production
@@ -235,7 +235,7 @@ jobs:
               cloud_sql_instances: ${CONNECTION_NAME}
             EOF
             echo "!******************"
-            cat rails-example/app.yaml
+            echo "${BASH_ENV}"
             echo "!******************"
             env
             echo "!******************"
