@@ -198,7 +198,22 @@ jobs:
           no_output_timeout: 20m
           command: |
             #Load environment variables 
+            echo "*** Pre test"
+            echo " username ${CLOUDSQL_USERNAME}"
+            echo " username2 $CLOUDSQL_USERNAME"
+
+            echo " secret base 1 ${SECRET_KEY_BASE}"
+            echo " secret base 2 $SECRET_KEY_BASE"
+
             . "${BASH_ENV}"
+
+            echo "*** Post test"
+            echo " username ${CLOUDSQL_USERNAME}"
+            echo " username2 $CLOUDSQL_USERNAME"
+
+            echo " secret base 1 ${SECRET_KEY_BASE}"
+            echo " secret base 2 $SECRET_KEY_BASE"
+
             if [ "${CIRCLE_BRANCH}" = "master" ] ; then
               export RAILS_ENV=production
               export INSTANCES=2
