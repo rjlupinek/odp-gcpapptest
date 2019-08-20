@@ -59,6 +59,7 @@ jobs:
               export $env_var
             done  
             IFS="$OLDIFS"
+            . "${BASH_ENV}"
       - persist_to_workspace:  #Save the decrypted secrets to vars.json and persist between jobs
           root: /tmp/workspace
           paths: 
@@ -96,7 +97,7 @@ jobs:
       - run:
           name: Initialize and plan Terraform (check plan out here before approving!)
           command: |
-            . "${BASH_ENV}"
+            #. "${BASH_ENV}"
             export TF_VAR_project_id=${GOOGLE_PROJECT_ID}
             export TF_VAR_environment=${CIRCLE_BRANCH}
             export TF_VAR_cloudsql_username="$CLOUDSQL_USERNAME"
@@ -206,14 +207,7 @@ jobs:
               export INSTANCES=1
             fi
             export PROXY_URL="https://${GOOGLE_PROJECT_ID}.appspot.com/"
-            export CONNECTION_NAME="${GOOGLE_PROJECT_ID}:us-east1:postgres"
-            # put the tf output into a variable so it doesn't hit the disk
-            export TFOUTPUT=$(gsutil cp gs://gcp-terraform-state-$GOOGLE_PROJECT_ID/tf-output.json -)
-            #export SECRET_KEY_BASE=$(echo ${TFOUTPUT} | jq -r .rails_secret.value)
-            #export CLOUDSQL_USERNAME=$(echo ${TFOUTPUT} | jq -r .postgres_username.value)
-            #export CLOUDSQL_PASSWORD=$(echo ${TFOUTPUT} | jq -r .postgres_password.value)
-            #export CONNECTION_NAME=$(echo ${TFOUTPUT} | jq -r .postgres_instance.value)
-            #export SIGNATURE_KEY=$(echo ${TFOUTPUT} | jq -r .signature_key.value)        
+            export CONNECTION_NAME="${GOOGLE_PROJECT_ID}:us-east1:postgres"     
             # set the google app engine config file up
             cat <<EOF > rails-example/app.yaml
             runtime: ruby
