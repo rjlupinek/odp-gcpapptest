@@ -129,26 +129,6 @@ jobs:
             export TF_VAR_cloudsql_username="$CLOUDSQL_USERNAME"
             export TF_VAR_cloudsql_password="$CLOUDSQL_PASSWORD"          
             cd terraform && terraform init -backend-config="bucket=gcp-terraform-state-${GOOGLE_PROJECT_ID}" && terraform apply -input=false -auto-approve
-            #terraform output -json > /tmp/workspace/tf-output.json
-      #- persist_to_workspace:
-      #    root: /tmp/workspace
-      #    paths:
-      #      - tf-output.json
-
-#  store_tf_output:
-#    docker:
-#      - image: google/cloud-sdk
-#    steps:
-#      - attach_workspace:
-#          at: /tmp/workspace
-#      - run:
-#          <<: *setgcpinitvars
-#      - run:
-#          <<: *initgcp-sdk
-#      - run:
-#          name: copy tf output into bucket
-#          command: |
-#            gsutil cp /tmp/workspace/tf-output.json gs://gcp-terraform-state-$GOOGLE_PROJECT_ID/tf-output.json
  
   deploy-rails:
     docker:
@@ -343,6 +323,7 @@ jobs:
             else
               echo no rails versions to clean up
             fi
+
   deploy-ssoproxy:
     docker:
       - image: google/cloud-sdk
@@ -414,6 +395,7 @@ jobs:
             - sso_target_version
             - sso_target_url
             - sso_deploy_url
+
   test-ssoproxy:
     docker:
       - image: google/cloud-sdk
@@ -431,6 +413,7 @@ jobs:
             curl -f $(cat /tmp/workspace/sso_deploy_url)liveness_check | grep OK || exit 1
             echo testing if proxy is giving back an authorize redirect
             curl -f $(cat /tmp/workspace/sso_deploy_url) | grep authorize || exit 1
+
   promote-ssoproxy:
     docker:
       - image: google/cloud-sdk
@@ -461,133 +444,7 @@ jobs:
             else
               echo no ssoproxy versions to clean up
             fi
-  deploy-dotnet:
-    docker:
-      - image: gcr.io/google-appengine/aspnetcore:2.1.0
-    steps:
-      - checkout
-      - run:
-          name: install required software
-          command: |
-            apt-get update
-            apt install -y python python-dev python3 python3-dev python-pip git jq
-      - run:
-          <<: *setgcpinitvars
-      - run:
-          <<: *initgcp-nongoogle
-      - attach_workspace:
-          at: /tmp/workspace
-      - run:  #Load decrypted variables
-          <<: *loadvars
-      - run:
-          name: prepare app engine config, build, deploy
-          no_output_timeout: 30m
-          command: |
-            cd dotnet-example
-            if [ "${CIRCLE_BRANCH}" = "master" ] ; then
-              export DEPLOY_ENV=production
-              export INSTANCES=2
-            else
-              export DEPLOY_ENV=${CIRCLE_BRANCH}
-              export INSTANCES=1
-            fi
-            # put the tf output into a variable so it doesn't hit the disk
-            export CONNECTION_NAME="${GOOGLE_PROJECT_ID}:us-east1:postgres"
-            cat <<EOF > app.yaml
-            runtime: aspnetcore
-            env: flex
-            service: dotnet-example
-            automatic_scaling:
-              min_num_instances: ${INSTANCES}
-            env_variables:
-              ASPNETCORE_DEPLOY_ENV: "${DEPLOY_ENV}"
-              ASPNETCORE_BASICAUTH_USER: "${BASICAUTH_USER}"
-              ASPNETCORE_BASICAUTH_PASSWORD: "${BASICAUTH_PASSWORD}"
-              CUSTOMCONNSTR_postgres: Uid=${CLOUDSQL_USERNAME};Pwd=${CLOUDSQL_PASSWORD};Host=cloudsql;Database=dotnet-${DEPLOY_ENV}-visitors
-            beta_settings:
-              cloud_sql_instances: ${CONNECTION_NAME}=tcp:5432
-            EOF
-            # make sure database exists
-            gcloud sql databases create dotnet-${DEPLOY_ENV}-visitors --instance ${DEPLOY_ENV} || true
-            # deploy!  The app will automatically update it's schema.
-            dotnet restore
-            dotnet publish -c Release
-            gcloud app deploy --no-promote ./bin/Release/netcoreapp2.1/publish/app.yaml --format=json | jq -r .versions[0].id > /tmp/workspace/dotnet_target_version
-            echo "https://$(cat /tmp/workspace/dotnet_target_version)-dot-dotnet-example-${GOOGLE_PROJECT_ID}.appspot.com/" > /tmp/workspace/dotnet_deploy_url
-            echo "https://dotnet-example-dot-${GOOGLE_PROJECT_ID}.appspot.com/" > /tmp/workspace/dotnet_target_url
-      - persist_to_workspace:
-          root: /tmp/workspace
-          paths:
-            - dotnet_target_version
-            - dotnet_target_url
-            - dotnet_deploy_url
-  test-dotnet:
-    docker:
-      - image: google/cloud-sdk
-    steps:
-      - checkout
-      - attach_workspace:
-          at: /tmp/workspace
-      - run:
-          name: Run Tests!
-          command: echo "not tested! Run a testing script here on $(cat /tmp/workspace/dotnet_deploy_url). XXX"
-  owaspzap-dotnet:
-    docker:
-      - image: owasp/zap2docker-weekly
-    steps:
-      - checkout
-      - attach_workspace:
-          at: /tmp/workspace
-      - run:
-          name: Run OWASP Zap against the app! (fails if the test takes more than 30 minutes)
-          no_output_timeout: 30m
-          command: |
-            # if we are in production, do not do form posts, because they can potentially create cruft in the db.
-            if [ "${CIRCLE_BRANCH}" = "master" ] ; then
-              POSTFORM=false
-            else
-              POSTFORM=true
-            fi
-            export ZAP_CONFIG=" \
-              -config globalexcludeurl.url_list.url\(0\).regex='.*/robots\.txt.*' \
-              -config globalexcludeurl.url_list.url\(0\).description='Exclude robots.txt' \
-              -config globalexcludeurl.url_list.url\(0\).enabled=true \
-              -config spider.postform=${POSTFORM}"
-            if zap-full-scan.py -m 5 -z "${ZAP_CONFIG}" -t "$(cat  /tmp/workspace/dotnet_deploy_url)" ; then
-              echo "OWASP ZAP scan found no problems.  Yay!"
-            else
-              echo "XXX run a script or send email to notify Admins that the OWASP ZAP scan found issues here"
-            fi
-  promote-dotnet:
-    docker:
-      - image: google/cloud-sdk
-    steps:
-      - run:
-          <<: *setgcpinitvars
-      - run:
-          <<: *initgcp-sdk
-      - attach_workspace:
-          at: /tmp/workspace
-      - run:
-          name: Promote dotnet-example to production
-          command: |
-            # promote dotnet
-            export VERSION=$(cat /tmp/workspace/dotnet_target_version)
-            gcloud app services set-traffic dotnet-example --splits ${VERSION}=1 --quiet
-            echo promoted dotnet ${VERSION} to $(cat /tmp/workspace/dotnet_target_url)
-      - run:
-          name: Clean up old versions
-          no_output_timeout: 30m
-          command: |
-            # clean up old versions (leave the last two, so you can roll back)
-            echo cleaning up old versions
-            VERSIONS=$(gcloud app versions list --service=dotnet-example --format=list | sort -rn | tail -n +3 | sed 's/^.*\///') || true
-            if [ ! -z "${VERSIONS}" ] ; then
-              gcloud app versions delete ${VERSIONS} --quiet || true
-              echo cleaned up dotnet "${VERSIONS}"
-            else
-              echo no dotnet versions to clean up
-            fi
+
   deploy-log-sync:
     docker:
       - image: google/cloud-sdk
@@ -743,27 +600,6 @@ workflows:
       - promote-ssoproxy:
           requires:
             - test-ssoproxy
-#Dotnet app jobs
-      - deploy-dotnet:
-          requires:
-            - apply_terraform             
-          filters:
-            branches:
-              only:
-                # This is the list of branches which will be deployed automatically.
-                # Add more branches here if you want them automatically deployed.
-                - master
-                - staging
-                - dev
-      - test-dotnet:
-          requires:
-            - deploy-dotnet
-      - owaspzap-dotnet:
-          requires:
-            - deploy-dotnet
-      - promote-dotnet:
-          requires:
-            - test-dotnet
 #OWASPZAP Log sync jobs            
       - deploy-log-sync:
           requires:
