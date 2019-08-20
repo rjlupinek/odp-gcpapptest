@@ -197,6 +197,8 @@ jobs:
           name: prepare app engine config, deploy, and run db migrations
           no_output_timeout: 20m
           command: |
+            #Load environment variables 
+            . "${BASH_ENV}"
             if [ "${CIRCLE_BRANCH}" = "master" ] ; then
               export RAILS_ENV=production
               export INSTANCES=2
@@ -351,6 +353,7 @@ jobs:
           name: prepare app engine config, build, deploy
           no_output_timeout: 30m
           command: |
+            . "${BASH_ENV}"
             apt install -y jq
             git clone https://github.com/pusher/oauth2_proxy
             cd oauth2_proxy
