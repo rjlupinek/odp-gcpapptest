@@ -209,11 +209,11 @@ jobs:
             export CONNECTION_NAME="${GOOGLE_PROJECT_ID}:us-east1:postgres"
             # put the tf output into a variable so it doesn't hit the disk
             export TFOUTPUT=$(gsutil cp gs://gcp-terraform-state-$GOOGLE_PROJECT_ID/tf-output.json -)
-            export SECRET_KEY_BASE=$(echo ${TFOUTPUT} | jq -r .rails_secret.value)
-            export CLOUDSQL_USERNAME=$(echo ${TFOUTPUT} | jq -r .postgres_username.value)
-            export CLOUDSQL_PASSWORD=$(echo ${TFOUTPUT} | jq -r .postgres_password.value)
-            export CONNECTION_NAME=$(echo ${TFOUTPUT} | jq -r .postgres_instance.value)
-            export SIGNATURE_KEY=$(echo ${TFOUTPUT} | jq -r .signature_key.value)        
+            #export SECRET_KEY_BASE=$(echo ${TFOUTPUT} | jq -r .rails_secret.value)
+            #export CLOUDSQL_USERNAME=$(echo ${TFOUTPUT} | jq -r .postgres_username.value)
+            #export CLOUDSQL_PASSWORD=$(echo ${TFOUTPUT} | jq -r .postgres_password.value)
+            #export CONNECTION_NAME=$(echo ${TFOUTPUT} | jq -r .postgres_instance.value)
+            #export SIGNATURE_KEY=$(echo ${TFOUTPUT} | jq -r .signature_key.value)        
             # set the google app engine config file up
             cat <<EOF > rails-example/app.yaml
             runtime: ruby
@@ -238,9 +238,11 @@ jobs:
             beta_settings:
               cloud_sql_instances: ${CONNECTION_NAME}
             EOF
-
+            echo "!******************"
             cat rails-example/app.yaml
-
+            echo "!******************"
+            env
+            echo "!******************"
             # do the deploy!  Store the version so that we can promote it later.
             cd rails-example
             bundle exec bin/rails assets:precompile
