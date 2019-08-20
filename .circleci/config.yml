@@ -238,6 +238,9 @@ jobs:
             beta_settings:
               cloud_sql_instances: ${CONNECTION_NAME}
             EOF
+
+            cat rails-example/app.yaml
+
             # do the deploy!  Store the version so that we can promote it later.
             cd rails-example
             bundle exec bin/rails assets:precompile
