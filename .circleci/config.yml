@@ -235,10 +235,9 @@ jobs:
               cloud_sql_instances: ${CONNECTION_NAME}
             EOF
             echo "!******************"
-            echo "${BASH_ENV}"
+            cat "${BASH_ENV}"
             echo "!******************"
-            env
-            echo "!******************"
+
             # do the deploy!  Store the version so that we can promote it later.
             cd rails-example
             bundle exec bin/rails assets:precompile
