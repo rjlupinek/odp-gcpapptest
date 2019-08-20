@@ -59,7 +59,7 @@ jobs:
               export $env_var
             done  
             IFS="$OLDIFS"
-
+            . "${BASH_ENV}"
       - persist_to_workspace:  #Save the decrypted secrets to vars.json and persist between jobs
           root: /tmp/workspace
           paths: 
