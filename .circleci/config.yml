@@ -6,7 +6,6 @@ version: 2
 # what order the jobs run in and what depends on what.
 jobs:
 
-
   gcp_setup:
     docker:
       - image: google/cloud-sdk
@@ -130,6 +129,62 @@ jobs:
             export TF_VAR_cloudsql_password="$CLOUDSQL_PASSWORD"          
             cd terraform && terraform init -backend-config="bucket=gcp-terraform-state-${GOOGLE_PROJECT_ID}" && terraform apply -input=false -auto-approve
  
+  deploy-cloudsql-postgres:
+    docker:
+      - image: google/cloud-sdk
+    steps:
+      - attach_workspace:
+          at: /tmp/workspace
+      - checkout
+      - run:
+          <<: *setgcpinitvars
+      - run:
+          <<: *initgcp-nongoogle
+      - run:  #Load decrypted variables
+          <<: *loadvars
+      - run:
+          name: prepare app engine config, deploy, and run db migrations
+          no_output_timeout: 20m
+          command: |
+            #Load CIRCLE  environment variables as bash environment variables
+            . "${BASH_ENV}"
+            #Set the number of intial instances to start to support the application.
+            if [ "${CIRCLE_BRANCH}" = "master" ] ; then
+              export INSTANCES=2
+            else
+              export RAILS_ENV=${CIRCLE_BRANCH}
+              export INSTANCES=1
+            fi
+            export PROXY_URL="https://${GOOGLE_PROJECT_ID}.appspot.com/"
+            export CONNECTION_NAME="${GOOGLE_PROJECT_ID}:us-east1:postgres"
+            cat <<EOF > rails-example/app.yaml
+            runtime: ruby
+            env: flex
+            service: rails
+            automatic_scaling:
+              min_num_instances: ${INSTANCES}
+            env_variables:
+              SECRET_KEY_BASE: "${SECRET_KEY_BASE}"
+              CLOUDSQL_USERNAME: "${CLOUDSQL_USERNAME}"
+              CLOUDSQL_PASSWORD: "${CLOUDSQL_PASSWORD}"
+              CLOUDSQL_INSTANCE: "${CONNECTION_NAME}"
+              SIGNATURE_KEY: "${SIGNATURE_KEY}"
+              RAILS_ENV: "${RAILS_ENV}"
+              BASICAUTH_PASSWORD: "${BASICAUTH_PASSWORD}"
+              BASICAUTH_USER: "${BASICAUTH_USER}"
+              IDP_PROVIDER_URL: "${IDP_PROVIDER_URL}"
+              RAILS_LOG_TO_STDOUT: True
+              RAILS_SERVE_STATIC_FILES: True
+              RAILS_LOG_HEADERS: True
+              PROXY_URL: "${PROXY_URL}"
+            beta_settings:
+              cloud_sql_instances: ${CONNECTION_NAME}
+            EOF
+
+            gcloud app deploy -q --no-promote --format=json > /tmp/railsdeploy.json
+            cat /tmp/railsdeploy.json | jq -r .versions[0].id > /tmp/workspace/rails_target_version
+            export TARGET_VERSION=$(cat /tmp/workspace/rails_target_version)
+
   deploy-rails:
     docker:
       - image: circleci/ruby:2.5.3-stretch
@@ -324,128 +379,7 @@ jobs:
               echo no rails versions to clean up
             fi
 
-  deploy-ssoproxy:
-    docker:
-      - image: google/cloud-sdk
-    steps:
-      - checkout
-      - run:
-          <<: *setgcpinitvars
-      - run:
-          <<: *initgcp-sdk
-      - attach_workspace:
-          at: /tmp/workspace
-      - run:  #Load decrypted variables
-          <<: *loadvars
-      - run:
-          name: prepare app engine config, build, deploy
-          no_output_timeout: 30m
-          command: |
-            #Load CIRCLE  environment variables as bash environment variables
-            . "${BASH_ENV}"          
-            apt install -y jq
-            git clone https://github.com/pusher/oauth2_proxy
-            cd oauth2_proxy
-            # set defaults
-            export COOKIE_DOMAIN="${GOOGLE_PROJECT_ID}.appspot.com"
-            export TARGET_URL="https://${COOKIE_DOMAIN}/"
-            export INSTANCES=1
-            export IDP_CLIENT_ID=$(env | awk -F= "/^IDP_CLIENT_ID_${CIRCLE_BRANCH}=/ {print \$2}")
-            # override defaults depending on environment
-            if [ "${CIRCLE_BRANCH}" = "master" ] ; then
-              export INSTANCES=2
-            fi
-            # extract data for the app.yaml file
-            export SOURCE="${TARGET_URL}"
-            export DEST="https://rails-dot-${GOOGLE_PROJECT_ID}.appspot.com/"
-            echo ${SSO_KEY} > jwt_signing_key.pem
-            cat <<EOF > app.yaml
-            runtime: custom
-            env: flex
-            service: default
-            automatic_scaling:
-              min_num_instances: ${INSTANCES}
-            env_variables:
-              OAUTH2_PROXY_PROVIDER: login.gov
-              OAUTH2_PROXY_HTTP_ADDRESS: 0.0.0.0:8080
-              OAUTH2_PROXY_CLIENT_ID: ${IDP_CLIENT_ID}
-              OAUTH2_PROXY_REDIRECT_URL: ${SOURCE}oauth2/callback
-              OAUTH2_PROXY_OIDC_ISSUER_URL: ${IDP_PROVIDER_URL}
-              OAUTH2_PROXY_EMAIL_DOMAINS: "${IDP_EMAIL_DOMAIN}"
-              OAUTH2_PROXY_UPSTREAMS: ${DEST}
-              OAUTH2_PROXY_PASS_HOST_HEADER: false
-              OAUTH2_PROXY_SET_X_FORWARDED_HOST: true
-              OAUTH2_PROXY_SIGNATURE_KEY: "sha1:${SIGNATURE_KEY}"
-              OAUTH2_PROXY_COOKIE_SECURE: true
-              OAUTH2_PROXY_COOKIE_SECRET: "${COOKIE_SECRET}"
-              OAUTH2_PROXY_COOKIE_DOMAIN: "${COOKIE_DOMAIN}"
-              OAUTH2_PROXY_SKIP_PROVIDER_BUTTON: true
-              OAUTH2_PROXY_PROFILE_URL: "${IDP_PROFILE_URL}"
-              OAUTH2_PROXY_JWT_KEY_FILE: /etc/ssl/private/jwt_signing_key.pem
-              OAUTH2_PROXY_PUBJWK_URL: "${IDP_PUBKEY_URL}"
-              OAUTH2_PROXY_GCP_HEALTHCHECKS: true
-            EOF
-            # deploy!
-            gcloud app deploy -q --no-promote --format=json | jq -r .versions[0].id > /tmp/workspace/sso_target_version
-            echo "https://$(cat /tmp/workspace/sso_target_version)-dot-${GOOGLE_PROJECT_ID}.appspot.com/" > /tmp/workspace/sso_deploy_url
-            echo "${TARGET_URL}" > /tmp/workspace/sso_target_url
-      - persist_to_workspace:
-          root: /tmp/workspace
-          paths:
-            - sso_target_version
-            - sso_target_url
-            - sso_deploy_url
-
-  test-ssoproxy:
-    docker:
-      - image: google/cloud-sdk
-    steps:
-      - checkout
-      - attach_workspace:
-          at: /tmp/workspace
-      - run:
-          name: Run Tests!
-          command: |
-            echo "Need better tests!  Run a testing script here on $(cat /tmp/workspace/sso_deploy_url). XXX"
-            echo sleeping a bit to try to make this test more robust
-            sleep 30
-            echo testing if proxy is alive
-            curl -f $(cat /tmp/workspace/sso_deploy_url)liveness_check | grep OK || exit 1
-            echo testing if proxy is giving back an authorize redirect
-            curl -f $(cat /tmp/workspace/sso_deploy_url) | grep authorize || exit 1
-
-  promote-ssoproxy:
-    docker:
-      - image: google/cloud-sdk
-    steps:
-      - run:
-          <<: *setgcpinitvars
-      - run:
-          <<: *initgcp-sdk
-      - attach_workspace:
-          at: /tmp/workspace
-      - run:
-          name: Promote rails-example with sso to production
-          command: |
-            # promote ssoproxy
-            export VERSION=$(cat /tmp/workspace/sso_target_version)
-            gcloud app services set-traffic default --splits ${VERSION}=1 --quiet
-            echo promoted ${VERSION} to $(cat /tmp/workspace/sso_target_url)
-      - run:
-          name: Clean up old versions
-          no_output_timeout: 30m
-          command: |
-            # clean up old versions (leave the last two, so you can roll back)
-            echo cleaning up old versions
-            VERSIONS=$(gcloud app versions list --service=default --format=list | sort -rn | tail -n +3 | sed 's/^.*\///') || true
-            if [ ! -z "${VERSIONS}" ] ; then
-              gcloud app versions delete ${VERSIONS} --quiet || true
-              echo cleaned up ssoproxy "${VERSIONS}"
-            else
-              echo no ssoproxy versions to clean up
-            fi
-
-# These are the workflows that define what CircleCI actually does.
+#These are the workflows that define what CircleCI actually does.
 workflows:
   version: 2
   build_and_deploy:
@@ -467,7 +401,7 @@ workflows:
       - apply_terraform:
           requires:
             - plan_terraform
-#Rails app jobs
+      #Rails app jobs
       - deploy-rails:
           requires:
             - apply_terraform        
@@ -490,21 +424,3 @@ workflows:
       - promote-rails:
           requires:
             - test-rails
-#SSO Proxy app jobs
-      - deploy-ssoproxy:
-          requires:
-            - apply_terraform          
-          filters:
-            branches:
-              only:
-                # This is the list of branches which will be deployed automatically.
-                # Add more branches here if you want them automatically deployed.
-                - master
-                - staging
-                - dev
-      - test-ssoproxy:
-          requires:
-            - deploy-ssoproxy
-      - promote-ssoproxy:
-          requires:
-            - test-ssoproxy
