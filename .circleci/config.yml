@@ -4,7 +4,7 @@ version: 2
 # 
 # Workflows can be found at the bottom of this file.  They specify
 # what order the jobs run in and what depends on what.
-jobs:
+jobs: 
 
   gcp_setup:
     docker:
