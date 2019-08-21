@@ -59,7 +59,7 @@ jobs:
               export $env_var
             done  
             IFS="$OLDIFS"
-            source "${BASH_ENV}"
+            . "${BASH_ENV}"
       - persist_to_workspace:  #Save the decrypted secrets to vars.json and persist between jobs
           root: /tmp/workspace
           paths: 
@@ -445,98 +445,6 @@ jobs:
               echo no ssoproxy versions to clean up
             fi
 
-  deploy-log-sync:
-    docker:
-      - image: google/cloud-sdk
-    steps:
-      - checkout
-      - run:
-          <<: *setgcpinitvars
-      - run:
-          <<: *initgcp-sdk
-      - run:
-          name: prepare app engine config, build, deploy
-          no_output_timeout: 30m
-          command: |
-            # if LOGTO is set, then we are assuming that we are shipping logs
-            # to GSA IT Security (or whoever) for event correlation/auditing.
-            if [ -z "${LOGTO}" ] ; then
-              echo LOGTO not set, not launching security-logging service
-              echo attempting to clean up logsync job
-              gcloud -q beta scheduler jobs delete logsync-${CIRCLE_BRANCH} || true
-              exit 0
-            fi
-            if [ "${CIRCLE_BRANCH}" = "master" ] ; then
-              TARGET_ENV="production"
-            else
-              TARGET_ENV="${CIRCLE_BRANCH}"
-            fi
-            apt install -y jq
-            cd security-logging
-            # extract data for the app.yaml file
-            export TFOUTPUT=$(gsutil cp gs://gcp-terraform-state-$GOOGLE_PROJECT_ID/tf-output.json -)
-            export LOGFROM=$(echo ${TFOUTPUT} | jq -r .logs_bucket.value)
-            export AUTH_HEADER="GCS-Authorization"
-            export AUTH_INFO="$(cat /proc/sys/kernel/random/uuid)_$(date +%s)"
-            export TARGET_URL="https://${CIRCLE_BRANCH}-dot-logsync-dot-${GOOGLE_PROJECT_ID}.appspot.com/"
-            cat <<EOF > app.yaml
-            runtime: custom
-            env: flex
-            service: logsync
-            automatic_scaling:
-              min_num_instances: 1
-            env_variables:
-              FROM: ${LOGFROM}
-              TO: ${LOGTO}/${CIRCLE_BRANCH}
-              AWS_ACCESS_KEY_ID: ${LOGTO_AWS_ACCESS_KEY_ID}
-              AWS_SECRET_ACCESS_KEY: ${LOGTO_AWS_SECRET_ACCESS_KEY}
-              AUTH_INFO: ${AUTH_INFO}
-            EOF
-            # deploy!
-            gcloud app deploy -q
-            # deploy the scheduled task that makes the logsync happen
-            # You must delete a job before creating it.
-            gcloud -q beta scheduler jobs delete logsync-${CIRCLE_BRANCH} || true
-            gcloud beta scheduler jobs create http logsync-${CIRCLE_BRANCH} --http-method=GET --schedule 'every 5 minutes' --uri="${TARGET_URL}" --headers ${AUTH_HEADER}="${AUTH_INFO}"
-      - run:
-          name: Clean up old versions
-          no_output_timeout: 30m
-          command: |
-            # clean up old versions (leave the last two, so you can roll back)
-            echo cleaning up old versions
-            VERSIONS=$(gcloud app versions list --service=logsync --format=list | sort -rn | tail -n +3 | sed 's/^.*\///') || true
-            if [ ! -z "${VERSIONS}" ] ; then
-              gcloud app versions delete ${VERSIONS} --quiet || true
-              echo cleaned up logsync "${VERSIONS}"
-            else
-              echo no logsync versions to clean up
-            fi
-  owaspzap-log-sync:
-    docker:
-      - image: owasp/zap2docker-weekly
-    steps:
-      - checkout
-      - run:
-          name: Run OWASP Zap against the app! (fails if the test takes more than 30 minutes)
-          no_output_timeout: 30m
-          command: |
-            # if LOGTO is set, then we are assuming that we are shipping logs
-            # to GSA IT Security (or whoever) for event correlation/auditing.
-            if [ -z "${LOGTO}" ] ; then
-              echo LOGTO not set, not scanning security-logging service
-              exit 0
-            fi
-            export TARGET_URL="https://${CIRCLE_BRANCH}-dot-logsync-dot-${GOOGLE_PROJECT_ID}.appspot.com/"
-            export ZAP_CONFIG=" \
-              -config globalexcludeurl.url_list.url\(0\).regex='.*/robots\.txt.*' \
-              -config globalexcludeurl.url_list.url\(0\).description='Exclude robots.txt' \
-              -config globalexcludeurl.url_list.url\(0\).enabled=true \
-              "
-            if zap-full-scan.py -m 5 -z "${ZAP_CONFIG}" -t "${TARGET_URL}" ; then
-              echo "OWASP ZAP scan found no problems.  Yay!"
-            else
-              echo "XXX run a script or send email to notify Admins that the OWASP ZAP scan found issues here"
-            fi
 # These are the workflows that define what CircleCI actually does.
 workflows:
   version: 2
@@ -600,18 +508,3 @@ workflows:
       - promote-ssoproxy:
           requires:
             - test-ssoproxy
-#OWASPZAP Log sync jobs            
-      - deploy-log-sync:
-          requires:
-            - apply_terraform           
-          filters:
-            branches:
-              only:
-                # This is the list of branches which will be deployed automatically.
-                # Add more branches here if you want them automatically deployed.
-                - master
-                - staging
-                - dev
-      - owaspzap-log-sync:
-          requires:
-            - deploy-log-sync
