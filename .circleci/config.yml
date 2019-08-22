@@ -150,13 +150,16 @@ jobs:
           name: prepare app engine config, deploy, and run db migrations
           no_output_timeout: 20m
           command: |
+
+            #Load CIRCLE  environment variables as bash environment variables
+            . "${BASH_ENV}"          
+
             #Run the database setup script
             export SQLALCHEMY_DATABASE_URI="postgresql+psycopg2://${CLOUDSQL_USERNAME}:${CLOUDSQL_PASSWORD}@/postgres?host=/cloudsql/${CONNECTION_NAME}"
             pip install -r cloudsql_postgresql/requirements.txt 
             python cloudsql_postgresql/create_tables.py 
             
-            #Load CIRCLE  environment variables as bash environment variables
-            . "${BASH_ENV}"
+
             #Set the number of intial instances to start to support the application.
             if [ "${CIRCLE_BRANCH}" = "master" ] ; then
               export INSTANCES=2
