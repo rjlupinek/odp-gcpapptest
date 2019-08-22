@@ -163,14 +163,6 @@ jobs:
             export CONNECTION_NAME="${GOOGLE_PROJECT_ID}:us-east1:postgres"
 
             #Create the app.yml that describes this application.
-            echo "****USERNAME*******"
-            echo ${CLOUDSQL_USERNAME}
-            echo "*****BASH_ENV***********"
-            cat "${BASH_ENV}"
-            echo "*****ENV******"
-            env
-
-
             cat <<EOF > cloudsql_postgresql/app.yaml
 
             runtime: python
