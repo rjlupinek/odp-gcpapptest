@@ -156,7 +156,7 @@ jobs:
               export INSTANCES=2
             else
               export RAILS_ENV=${CIRCLE_BRANCH}
-              export INSTANCES=1gcloud app versions delete -
+              export INSTANCES=1
             fi
             export PROXY_URL="https://${GOOGLE_PROJECT_ID}.appspot.com/"
             export CONNECTION_NAME="${GOOGLE_PROJECT_ID}:us-east1:postgres"
@@ -176,7 +176,6 @@ jobs:
             echo "Running table creation script..."
             python cloudsql_postgresql/create_tables.py | true 
             echo "Generating app.yml for application..."
-            
             #Create the app.yml that describes this application.
             cat <<EOF > cloudsql_postgresql/app.yaml
 
