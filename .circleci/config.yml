@@ -152,7 +152,7 @@ jobs:
           command: |
             #Run the database setup script
             export SQLALCHEMY_DATABASE_URI="postgresql+psycopg2://${CLOUDSQL_USERNAME}:${CLOUDSQL_PASSWORD}@/postgres?host=/cloudsql/${CONNECTION_NAME}"
-            pip install flask
+            pip install flask flask_sqlalchemy
             python cloudsql_postgresql/create_tables.py
             
             #Load CIRCLE  environment variables as bash environment variables
