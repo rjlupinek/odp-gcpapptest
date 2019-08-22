@@ -127,7 +127,7 @@ jobs:
             export TF_VAR_cloudsql_password="$CLOUDSQL_PASSWORD"          
             cd terraform && terraform init -backend-config="bucket=gcp-terraform-state-${GOOGLE_PROJECT_ID}" && terraform apply -input=false -auto-approve
  
-  deploy-cloudsql-postgres:
+  deploy-cloudsql-postgresql:
     docker:
       - image: google/cloud-sdk
     steps:
@@ -157,11 +157,11 @@ jobs:
             export CONNECTION_NAME="${GOOGLE_PROJECT_ID}:us-east1:postgres"
 
             #Create the app.yml that describes this application.
-            cat <<EOF > cloudsql-postgres/app.yaml
+            cat <<EOF > cloudsql_postgresql/app.yaml
 
             runtime: python
             env: flex
-            service: cloudsql-postgres
+            service: cloudsql-postgresql
             automatic_scaling:
               min_num_instances: ${INSTANCES}            
             entrypoint: gunicorn -b :$PORT main:app
@@ -185,12 +185,12 @@ jobs:
             #[END gae_flex_postgres_settings]
             EOF
 
-            cd cloudsql-postgres
-            gcloud app deploy -q --no-promote --format=json > /tmp/cloudsql-postgres.json
-            cat /tmp/cloudsql-postgres.json | jq -r .versions[0].id > /tmp/workspace/cloudsql-postgres-version
-            export TARGET_VERSION=$(cat /tmp/workspace/cloudsql-postgres-version)
+            cd cloudsql_postgresql
+            gcloud app deploy -q --no-promote --format=json > /tmp/cloudsql-postgresql.json
+            cat /tmp/cloudsql-postgresql.json | jq -r .versions[0].id > /tmp/workspace/cloudsql-postgresql-version
+            export TARGET_VERSION=$(cat /tmp/workspace/cloudsql-postgresql-version)
 
-  promote-cloudsql-postgres:
+  promote-cloudsql-postgresql:
     docker:
       - image: google/cloud-sdk
     steps:
@@ -201,20 +201,20 @@ jobs:
       - attach_workspace:
           at: /tmp/workspace
       - run:
-          name: Promote cloudsql-postgres
+          name: Promote cloudsql-postgresql
           command: |
-            # promote cloudsql-postgres
-            export VERSION=$(cat /tmp/workspace/cloudsql-postgres-version)
-            gcloud app services set-traffic cloudsql-postgres --splits ${VERSION}=1 --quiet
+            # promote cloudsql-postgresql
+            export VERSION=$(cat /tmp/workspace/cloudsql-postgresql-version)
+            gcloud app services set-traffic cloudsql-postgresql --splits ${VERSION}=1 --quiet
             echo promoted rails ${VERSION} to "https://rails-dot-${GOOGLE_PROJECT_ID}.appspot.com/"
       - run:
           name: Clean up old versions
           no_output_timeout: 30m
           command: |
             # clean up old versions (leave the last two, so you can roll back)
-            VERSIONS=$(gcloud app versions list --service=cloudsql-postgres --format=list | sort -rn | tail -n +3 | sed 's/^.*\///') || true
+            VERSIONS=$(gcloud app versions list --service=cloudsql-postgresql --format=list | sort -rn | tail -n +3 | sed 's/^.*\///') || true
             if [ ! -z "${VERSIONS}" ] ; then
-              gcloud app versions delete --service=cloudsql-postgres ${VERSIONS} --quiet || true
+              gcloud app versions delete --service=cloudsql-postgresql ${VERSIONS} --quiet || true
               echo cleaned up rails ${VERSIONS}
             else
               echo no rails versions to clean up
@@ -436,7 +436,7 @@ workflows:
           requires:
             - plan_terraform
       #Python Cloud SQL app jobs
-      - deploy-cloudsql-postgres:
+      - deploy-cloudsql-postgresql:
           requires:
             - apply_terraform        
           filters:
@@ -447,9 +447,9 @@ workflows:
                 - master
                 - staging
                 - dev        
-      - promote-cloudsql-postgres:
+      - promote-cloudsql-postgresql:
           requires:
-            - deploy-cloudsql-postgres    
+            - deploy-cloudsql-postgresql    
       #Rails app jobs
 #      - deploy-rails:
 #          requires:
