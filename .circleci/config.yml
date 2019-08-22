@@ -160,6 +160,7 @@ jobs:
             echo "******************"
             echo ${CLOUDSQL_USERNAME}
             echo "******************"
+            echo "${BASH_ENV}"
             env
 
 
