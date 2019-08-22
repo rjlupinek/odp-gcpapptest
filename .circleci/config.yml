@@ -156,6 +156,7 @@ jobs:
 
             #Run the database setup script
             export SQLALCHEMY_DATABASE_URI="postgresql+psycopg2://${CLOUDSQL_USERNAME}:${CLOUDSQL_PASSWORD}@/postgres?host=/cloudsql/${CONNECTION_NAME}"
+            echo $SQLALCHEMY_DATABASE_URI
             pip install -r cloudsql_postgresql/requirements.txt 
             python cloudsql_postgresql/create_tables.py 
             
