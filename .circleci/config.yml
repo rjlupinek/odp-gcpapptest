@@ -17,7 +17,7 @@ jobs:
             echo $(env | grep -E "^GCLOUD_SERVICE_KEY_${CIRCLE_BRANCH}=" | sed "s/^GCLOUD_SERVICE_KEY_${CIRCLE_BRANCH}=//") > ${HOME}/gcloud-service-key.json
             export GOOGLE_PROJECT_ID=$(env | awk -F= "/^GOOGLE_PROJECT_ID_${CIRCLE_BRANCH}=/ {print \$2}")
             echo "export GOOGLE_PROJECT_ID='$GOOGLE_PROJECT_ID'" >> $BASH_ENV
-      - run: &initgcp-nongoogle   #Install the Google Clound SDK if it is required.  None google/cloud-sdk images will most likely require this.
+      - run: &install-gcp-sdk-nongoogle   #Install the Google Clound SDK if it is required.  None google/cloud-sdk images will most likely require this.
           name: Setup Google Cloud SDK
           command: |   
             echo "Installing Google Cloud SDK..."        
@@ -30,8 +30,6 @@ jobs:
               tar xzf gcloud-sdk.tar.gz -C ~
               rm gcloud-sdk.tar.gz
               export PATH=~/google-cloud-sdk/bin:$PATH
-              gcloud auth activate-service-account --key-file ${HOME}/gcloud-service-key.json
-              gcloud config set project $GOOGLE_PROJECT_ID
               echo 'export PATH=~/google-cloud-sdk/bin:$PATH' >> $BASH_ENV
               source $BASH_ENV              
             fi
@@ -139,7 +137,7 @@ jobs:
       - run:
           <<: *setgcpinitvars
       - run:
-          <<: *initgcp-nongoogle
+          <<: *initgcp-sdk
       - run:  #Load decrypted variables
           <<: *loadvars
       - run:
@@ -157,7 +155,9 @@ jobs:
             fi
             export PROXY_URL="https://${GOOGLE_PROJECT_ID}.appspot.com/"
             export CONNECTION_NAME="${GOOGLE_PROJECT_ID}:us-east1:postgres"
-            cat <<EOF > rails-example/app.yaml
+
+            #Create the app.yml that describes this application.
+            cat <<EOF > cloudsql-postgres/app.yaml
 
             runtime: python
             env: flex
@@ -185,7 +185,7 @@ jobs:
             #[END gae_flex_postgres_settings]
             EOF
 
-
+            cd cloudsql-postgres
             gcloud app deploy -q --no-promote --format=json > /tmp/cloudsql-postgres.json
             cat /tmp/cloudsql-postgres.json | jq -r .versions[0].id > /tmp/workspace/cloudsql-postgres-version
             export TARGET_VERSION=$(cat /tmp/workspace/cloudsql-postgres-version)
@@ -244,7 +244,9 @@ jobs:
       - run:
           <<: *setgcpinitvars
       - run:
-          <<: *initgcp-nongoogle
+          <<: *install-gcp-sdk-nongoogle
+      - run:
+          <<: *initgcp-sdk          
       - run:  #Load decrypted variables
           <<: *loadvars
       - run:
