@@ -11,7 +11,7 @@ jobs:
       - image: google/cloud-sdk
     steps:
       - checkout
-      - run: &setgcpinitvars  #Create the service account json file for authentication,and set the project id from CircleCI variables..
+      - run: &set-gcp-init-vars  #Create the service account json file for authentication,and set the project id from CircleCI variables..
           name: set up job variables and key
           command: |
             echo $(env | grep -E "^GCLOUD_SERVICE_KEY_${CIRCLE_BRANCH}=" | sed "s/^GCLOUD_SERVICE_KEY_${CIRCLE_BRANCH}=//") > ${HOME}/gcloud-service-key.json
@@ -69,7 +69,7 @@ jobs:
       - attach_workspace:
           at: /tmp/workspace
       - run: 
-          <<: *setgcpinitvars
+          <<: *set-gcp-init-vars
       - run:
           <<: *initgcp-sdk
       - run:
@@ -85,7 +85,7 @@ jobs:
           at: /tmp/workspace
       - checkout
       - run:
-          <<: *setgcpinitvars
+          <<: *set-gcp-init-vars
       - run: 
           name: Install jq for parsing secrets file
           command: apk add -U --no-cache jq
@@ -110,7 +110,7 @@ jobs:
           at: /tmp/workspace
       - checkout
       - run:  #Set
-          <<: *setgcpinitvars
+          <<: *set-gcp-init-vars
       - run: 
           name: Install jq for parsing secrets file
           command: apk add -U --no-cache jq
@@ -135,7 +135,7 @@ jobs:
           at: /tmp/workspace
       - checkout
       - run:
-          <<: *setgcpinitvars
+          <<: *set-gcp-init-vars
       - run:
           <<: *initgcp-sdk
       - run:  #Load decrypted variables
@@ -157,9 +157,9 @@ jobs:
             export CONNECTION_NAME="${GOOGLE_PROJECT_ID}:us-east1:postgres"
 
             #Create the app.yml that describes this application.
-            echo "******************"
+            echo "****USERNAME*******"
             echo ${CLOUDSQL_USERNAME}
-            echo "******************"
+            echo "*****BASH_ENV***********"
             cat "${BASH_ENV}"
             echo "*****ENV******"
             env
@@ -205,7 +205,7 @@ jobs:
       - image: google/cloud-sdk
     steps:
       - run:
-          <<: *setgcpinitvars
+          <<: *set-gcp-init-vars
       - run:
           <<: *initgcp-sdk
       - attach_workspace:
@@ -252,7 +252,7 @@ jobs:
           paths:
             - rails-example/vendor/bundle
       - run:
-          <<: *setgcpinitvars
+          <<: *set-gcp-init-vars
       - run:
           <<: *install-gcp-sdk-nongoogle
       - run:
@@ -398,7 +398,7 @@ jobs:
       - image: google/cloud-sdk
     steps:
       - run:
-          <<: *setgcpinitvars
+          <<: *set-gcp-init-vars
       - run:
           <<: *initgcp-sdk
       - attach_workspace:
