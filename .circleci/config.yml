@@ -184,6 +184,8 @@ jobs:
                 cloud_sql_instances: "${CONNECTION_NAME}"
             #[END gae_flex_postgres_settings]
             EOF
+            
+            cat cloudsql_postgresql/app.yaml
 
             cd cloudsql_postgresql
             gcloud app deploy -q --no-promote --format=json > /tmp/cloudsql-postgresql.json
