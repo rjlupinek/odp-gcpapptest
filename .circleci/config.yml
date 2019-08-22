@@ -156,7 +156,7 @@ jobs:
               export INSTANCES=2
             else
               export RAILS_ENV=${CIRCLE_BRANCH}
-              export INSTANCES=1
+              export INSTANCES=1gcloud app versions delete -
             fi
             export PROXY_URL="https://${GOOGLE_PROJECT_ID}.appspot.com/"
             export CONNECTION_NAME="${GOOGLE_PROJECT_ID}:us-east1:postgres"
@@ -165,12 +165,18 @@ jobs:
             . "${BASH_ENV}"          
 
             #Run the database setup script
-            export SQLALCHEMY_DATABASE_URI="postgresql+psycopg2://${CLOUDSQL_USERNAME}:${CLOUDSQL_PASSWORD}@/postgres?host=/cloudsql/${CONNECTION_NAME}"
+            export SQLALCHEMY_DATABASE_URI="postgresql+psycopg2://${CLOUDSQL_USERNAME}:${CLOUDSQL_PASSWORD}@127.0.0.1:5432/postgres"
             echo "Installing prereqs..."
-            pip install -r cloudsql_postgresql/requirements.txt 
+            pip install -r cloudsql_postgresql/requirements.txt
+            echo "Setup the sql proxy..."
+            echo $(env | grep -E "^GCLOUD_SERVICE_KEY_${CIRCLE_BRANCH}=" | sed "s/^GCLOUD_SERVICE_KEY_${CIRCLE_BRANCH}=//") > ${HOME}/gcloud-service-key.json
+            wget https://dl.google.com/cloudsql/cloud_sql_proxy.linux.amd64 -O cloud_sql_proxy
+            cloud_sql_proxy -instances=$CONNECTION_NAME=tcp:5432 -credential_file=${HOME}/gcloud-service-key.json & 
+            
             echo "Running table creation script..."
             python cloudsql_postgresql/create_tables.py | true 
             echo "Generating app.yml for application..."
+            
             #Create the app.yml that describes this application.
             cat <<EOF > cloudsql_postgresql/app.yaml
 
