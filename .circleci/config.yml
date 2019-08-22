@@ -197,6 +197,11 @@ jobs:
             gcloud app deploy -q --no-promote --format=json > /tmp/py-postgres.json
             cat /tmp/py-postgres.json | jq -r .versions[0].id > /tmp/workspace/py-postgres-version
             export TARGET_VERSION=$(cat /tmp/workspace/py-postgres-version)
+      - persist_to_workspace:
+          root: /tmp/workspace
+          paths:
+            - py-postgres.json
+
 
   promote-py-postgres:
     docker:
@@ -214,7 +219,7 @@ jobs:
             # promote py-postgres
             export VERSION=$(cat /tmp/workspace/py-postgres-version)
             gcloud app services set-traffic py-postgres --splits ${VERSION}=1 --quiet
-            echo promoted rails ${VERSION} to "https://rails-dot-${GOOGLE_PROJECT_ID}.appspot.com/"
+            echo promoted py-postgres ${VERSION} to "https://py-postgres-${GOOGLE_PROJECT_ID}.appspot.com/"
       - run:
           name: Clean up old versions
           no_output_timeout: 30m
@@ -223,9 +228,9 @@ jobs:
             VERSIONS=$(gcloud app versions list --service=py-postgres --format=list | sort -rn | tail -n +3 | sed 's/^.*\///') || true
             if [ ! -z "${VERSIONS}" ] ; then
               gcloud app versions delete --service=py-postgres ${VERSIONS} --quiet || true
-              echo cleaned up rails ${VERSIONS}
+              echo cleaned up py-postgres ${VERSIONS}
             else
-              echo no rails versions to clean up
+              echo no py-postgres versions to clean up
             fi
 
   deploy-rails:
