@@ -138,6 +138,9 @@ jobs:
           <<: *set-gcp-init-vars
       - run:
           <<: *initgcp-sdk
+      - run: 
+          name: Install jq for parsing secrets file
+          command: apk add -U --no-cache jq          
       - run:  #Load decrypted variables
           <<: *loadvars
       - run:
