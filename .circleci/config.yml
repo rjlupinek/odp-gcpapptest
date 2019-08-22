@@ -158,32 +158,67 @@ jobs:
             export PROXY_URL="https://${GOOGLE_PROJECT_ID}.appspot.com/"
             export CONNECTION_NAME="${GOOGLE_PROJECT_ID}:us-east1:postgres"
             cat <<EOF > rails-example/app.yaml
-            runtime: ruby
+
+            runtime: python
             env: flex
-            service: rails
+            service: cloudsql-postgres
             automatic_scaling:
-              min_num_instances: ${INSTANCES}
+              min_num_instances: ${INSTANCES}            
+            entrypoint: gunicorn -b :$PORT main:app
+
+            runtime_config:
+              python_version: 3
+
+            #[START gae_flex_postgres_env]
             env_variables:
-              SECRET_KEY_BASE: "${SECRET_KEY_BASE}"
-              CLOUDSQL_USERNAME: "${CLOUDSQL_USERNAME}"
-              CLOUDSQL_PASSWORD: "${CLOUDSQL_PASSWORD}"
-              CLOUDSQL_INSTANCE: "${CONNECTION_NAME}"
-              SIGNATURE_KEY: "${SIGNATURE_KEY}"
-              RAILS_ENV: "${RAILS_ENV}"
-              BASICAUTH_PASSWORD: "${BASICAUTH_PASSWORD}"
-              BASICAUTH_USER: "${BASICAUTH_USER}"
-              IDP_PROVIDER_URL: "${IDP_PROVIDER_URL}"
-              RAILS_LOG_TO_STDOUT: True
-              RAILS_SERVE_STATIC_FILES: True
-              RAILS_LOG_HEADERS: True
-              PROXY_URL: "${PROXY_URL}"
+                # Replace user, password, database, and instance connection name with the values obtained
+                # when configuring your Cloud SQL instance.
+                SQLALCHEMY_DATABASE_URI: >-
+                  postgresql+psycopg2://"${CLOUDSQL_USERNAME}":"${CLOUDSQL_PASSWORD}"@/postgres?host=/cloudsql/"${CONNECTION_NAME}"
+            #[END gae_flex_postgres_env]
+
+            #[START gae_flex_postgres_settings]
+            # Replace project and instance with the values obtained  when configuring your
+            # Cloud SQL instance.
             beta_settings:
-              cloud_sql_instances: ${CONNECTION_NAME}
+                cloud_sql_instances: "${CONNECTION_NAME}"
+            #[END gae_flex_postgres_settings]
             EOF
 
-            gcloud app deploy -q --no-promote --format=json > /tmp/railsdeploy.json
-            cat /tmp/railsdeploy.json | jq -r .versions[0].id > /tmp/workspace/rails_target_version
-            export TARGET_VERSION=$(cat /tmp/workspace/rails_target_version)
+
+            gcloud app deploy -q --no-promote --format=json > /tmp/cloudsql-postgres.json
+            cat /tmp/cloudsql-postgres.json | jq -r .versions[0].id > /tmp/workspace/cloudsql-postgres-version
+            export TARGET_VERSION=$(cat /tmp/workspace/cloudsql-postgres-version)
+
+  promote-cloudsql-postgres:
+    docker:
+      - image: google/cloud-sdk
+    steps:
+      - run:
+          <<: *setgcpinitvars
+      - run:
+          <<: *initgcp-sdk
+      - attach_workspace:
+          at: /tmp/workspace
+      - run:
+          name: Promote cloudsql-postgres
+          command: |
+            # promote cloudsql-postgres
+            export VERSION=$(cat /tmp/workspace/cloudsql-postgres-version)
+            gcloud app services set-traffic cloudsql-postgres --splits ${VERSION}=1 --quiet
+            echo promoted rails ${VERSION} to "https://rails-dot-${GOOGLE_PROJECT_ID}.appspot.com/"
+      - run:
+          name: Clean up old versions
+          no_output_timeout: 30m
+          command: |
+            # clean up old versions (leave the last two, so you can roll back)
+            VERSIONS=$(gcloud app versions list --service=cloudsql-postgres --format=list | sort -rn | tail -n +3 | sed 's/^.*\///') || true
+            if [ ! -z "${VERSIONS}" ] ; then
+              gcloud app versions delete --service=cloudsql-postgres ${VERSIONS} --quiet || true
+              echo cleaned up rails ${VERSIONS}
+            else
+              echo no rails versions to clean up
+            fi
 
   deploy-rails:
     docker:
@@ -398,8 +433,8 @@ workflows:
       - apply_terraform:
           requires:
             - plan_terraform
-      #Rails app jobs
-      - deploy-rails:
+      #Python Cloud SQL app jobs
+      - deploy-cloudsql-postgres:
           requires:
             - apply_terraform        
           filters:
@@ -407,17 +442,32 @@ workflows:
               only:
                 # This is the list of branches which will be deployed automatically.
                 # Add more branches here if you want them automatically deployed.
-                # Their RAILS_ENV will get set to the branch name, or "production",
-                # if the branch is "master".
                 - master
                 - staging
-                - dev
-      - test-rails:
+                - dev        
+      - promote-cloudsql-postgres:
           requires:
-            - deploy-rails
-      - owaspzap-rails:
-          requires:
-            - deploy-rails
-      - promote-rails:
-          requires:
-            - test-rails
+            - deploy-cloudsql-postgres    
+      #Rails app jobs
+#      - deploy-rails:
+#          requires:
+#            - apply_terraform        
+#          filters:
+#            branches:
+#              only:
+#                # This is the list of branches which will be deployed automatically.
+#                # Add more branches here if you want them automatically deployed.
+#                # Their RAILS_ENV will get set to the branch name, or "production",
+#                # if the branch is "master".
+#                - master
+#                - staging
+#                - dev
+#      - test-rails:
+#          requires:
+#            - deploy-rails
+#      - owaspzap-rails:
+#          requires:
+#            - deploy-rails
+#      - promote-rails:
+#          requires:
+#            - test-rails
