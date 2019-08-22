@@ -151,6 +151,16 @@ jobs:
           no_output_timeout: 20m
           command: |
 
+            #Set the number of intial instances to start to support the application.
+            if [ "${CIRCLE_BRANCH}" = "master" ] ; then
+              export INSTANCES=2
+            else
+              export RAILS_ENV=${CIRCLE_BRANCH}
+              export INSTANCES=1
+            fi
+            export PROXY_URL="https://${GOOGLE_PROJECT_ID}.appspot.com/"
+            export CONNECTION_NAME="${GOOGLE_PROJECT_ID}:us-east1:postgres"
+
             #Load CIRCLE  environment variables as bash environment variables
             . "${BASH_ENV}"          
 
@@ -161,15 +171,7 @@ jobs:
             python cloudsql_postgresql/create_tables.py 
             
 
-            #Set the number of intial instances to start to support the application.
-            if [ "${CIRCLE_BRANCH}" = "master" ] ; then
-              export INSTANCES=2
-            else
-              export RAILS_ENV=${CIRCLE_BRANCH}
-              export INSTANCES=1
-            fi
-            export PROXY_URL="https://${GOOGLE_PROJECT_ID}.appspot.com/"
-            export CONNECTION_NAME="${GOOGLE_PROJECT_ID}:us-east1:postgres"
+
 
             #Create the app.yml that describes this application.
             cat <<EOF > cloudsql_postgresql/app.yaml
