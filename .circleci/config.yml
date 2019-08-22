@@ -165,12 +165,13 @@ jobs:
             . "${BASH_ENV}"          
 
             #Run the database setup script
+            #This process is a little involved as we must first setup a SQL proxy and python development environment to run the neccessary scripts.
             export SQLALCHEMY_DATABASE_URI="postgresql+psycopg2://${CLOUDSQL_USERNAME}:${CLOUDSQL_PASSWORD}@127.0.0.1:5432/postgres"
             echo "Installing prereqs..."
             pip install -r cloudsql_postgresql/requirements.txt
             echo "Setup the sql proxy..."
             echo $(env | grep -E "^GCLOUD_SERVICE_KEY_${CIRCLE_BRANCH}=" | sed "s/^GCLOUD_SERVICE_KEY_${CIRCLE_BRANCH}=//") > ${HOME}/gcloud-service-key.json
-            wget https://dl.google.com/cloudsql/cloud_sql_proxy.linux.amd64 -O cloud_sql_proxy
+            #wget https://dl.google.com/cloudsql/cloud_sql_proxy.linux.amd64 -O cloud_sql_proxy
             cloud_sql_proxy -instances=$CONNECTION_NAME=tcp:5432 -credential_file=${HOME}/gcloud-service-key.json & 
             
             echo "Running table creation script..."
@@ -452,19 +453,19 @@ workflows:
                 - master
                 - staging
                 - dev      
-      - init_terraform_state:
-          requires:
-            - gcp_setup          
-      - plan_terraform:
-          requires:
-            - init_terraform_state
-      - apply_terraform:
-          requires:
-            - plan_terraform
+  #    - init_terraform_state:
+  #        requires:
+  #          - gcp_setup          
+  #    - plan_terraform:
+  #        requires:
+  #          - init_terraform_state
+  #    - apply_terraform:
+  #        requires:
+  #          - plan_terraform
       #Python Cloud SQL app jobs
       - deploy-py-postgres:
           requires:
-            - apply_terraform        
+            - gcp_setup       
           filters:
             branches:
               only:
