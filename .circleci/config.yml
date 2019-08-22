@@ -151,7 +151,7 @@ jobs:
           no_output_timeout: 20m
           command: |
             #Run the database setup script
-            export SQLALCHEMY_DATABASE_URI = postgresql+psycopg2://${CLOUDSQL_USERNAME}:${CLOUDSQL_PASSWORD}@/postgres?host=/cloudsql/${CONNECTION_NAME}
+            export SQLALCHEMY_DATABASE_URI="postgresql+psycopg2://${CLOUDSQL_USERNAME}:${CLOUDSQL_PASSWORD}@/postgres?host=/cloudsql/${CONNECTION_NAME}"
             python cloudsql_postgresql/create_tables.py
             
             #Load CIRCLE  environment variables as bash environment variables
@@ -443,15 +443,15 @@ workflows:
                 - master
                 - staging
                 - dev      
-      - init_terraform_state:
-          requires:
-            - gcp_setup          
-      - plan_terraform:
-          requires:
-            - init_terraform_state
-      - apply_terraform:
-          requires:
-            - plan_terraform
+#      - init_terraform_state:
+#         requires:
+#           - gcp_setup          
+#     - plan_terraform:
+#         requires:
+#           - init_terraform_state
+#     - apply_terraform:
+#         requires:
+#           - plan_terraform
       #Python Cloud SQL app jobs
       - deploy-py-postgres:
           requires:
