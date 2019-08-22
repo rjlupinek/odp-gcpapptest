@@ -44,6 +44,9 @@ jobs:
             cd gcp_setup_secrets/
             mkdir /tmp/workspace || true
             ./gcp_setup_secrets.sh --project-id=$GOOGLE_PROJECT_ID --environment=${CIRCLE_BRANCH} --secrets-file=/tmp/workspace/vars.json --decrypt=true
+      - run: 
+          name: Install jq for parsing secrets file in the loadvars task
+          command: apt-get install jq -y                
       - run: &loadvars #Load the secrets file as environment variables.
           name: Load secrets into environment variables
           command: |
