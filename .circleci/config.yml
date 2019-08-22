@@ -204,7 +204,7 @@ jobs:
       - persist_to_workspace:
           root: /tmp/workspace
           paths:
-            - py-postgres.json
+            - py-postgres-version
 
 
   promote-py-postgres:
