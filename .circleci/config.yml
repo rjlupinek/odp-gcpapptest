@@ -166,13 +166,11 @@ jobs:
 
             #Run the database setup script
             export SQLALCHEMY_DATABASE_URI="postgresql+psycopg2://${CLOUDSQL_USERNAME}:${CLOUDSQL_PASSWORD}@/postgres?host=/cloudsql/${CONNECTION_NAME}"
-            echo $SQLALCHEMY_DATABASE_URI
+            echo "Installing prereqs..."
             pip install -r cloudsql_postgresql/requirements.txt 
-            python cloudsql_postgresql/create_tables.py 
-            
-
-
-
+            echo "Running table creation script..."
+            python cloudsql_postgresql/create_tables.py | true 
+            echo "Generating app.yml for application..."
             #Create the app.yml that describes this application.
             cat <<EOF > cloudsql_postgresql/app.yaml
 
@@ -201,9 +199,8 @@ jobs:
                 cloud_sql_instances: "${CONNECTION_NAME}"
             #[END gae_flex_postgres_settings]
             EOF
-
-            cat cloudsql_postgresql/app.yaml
-
+            
+            echo "Deploying application without promoting..."
             cd cloudsql_postgresql
             gcloud app deploy -q --no-promote --format=json > /tmp/py-postgres.json
             cat /tmp/py-postgres.json | jq -r .versions[0].id > /tmp/workspace/py-postgres-version
