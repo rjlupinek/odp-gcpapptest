@@ -531,7 +531,7 @@ workflows:
       #Python Cloud SQL app jobs
       - deploy-pypostgres:
           requires:
-            - plan_terraform      
+            - apply_terraform    
           filters:
             branches:
               only:
