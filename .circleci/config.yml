@@ -133,8 +133,6 @@ jobs:
   deploy-py-postgres:
     docker:
       - image: google/cloud-sdk
-        environment:
-          APP_NAME: py-postgres
 
     steps:
       - attach_workspace:
@@ -157,7 +155,8 @@ jobs:
             #Load CIRCLE  environment variables as bash environment variables
             . "${BASH_ENV}" 
 
-
+            #Set the application name
+            export APP_NAME="py-postgres"
 
             #Set the number of intial instances to start to support the application.
             if [ "${CIRCLE_BRANCH}" = "master" ] ; then
@@ -234,7 +233,7 @@ jobs:
       - persist_to_workspace:
           root: /tmp/workspace
           paths:
-            - ${APP_NAME}-version
+            - py-postgres-version
 
 
 
