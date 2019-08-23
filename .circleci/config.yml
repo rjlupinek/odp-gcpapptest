@@ -227,22 +227,28 @@ jobs:
             # Store signature key and URL so that we can test it later on.
             echo "https://${TARGET_VERSION}-dot-${APP_NAME}-dot-${GOOGLE_PROJECT_ID}.appspot.com/" > /tmp/workspace/${APP_NAME}_url
 
-            #TEST
-            cat /tmp/${APP_NAME}.json
-
       - persist_to_workspace:
           root: /tmp/workspace
           paths:
             - py-postgres-version
+            - py-postgres-url
 
-
+  test-py-postgres:
+    docker:
+      - image: google/cloud-sdk
+    steps:
+      - checkout
+      - attach_workspace:
+          at: /tmp/workspace
+      - run:
+          name: Test the app!
+          command: |
+            echo "run tests here against $(cat /tmp/workspace/py-postgres-url) with an ${AUTH_HEADER} header"
 
 
   owaspzap-py-postgres:
     docker:
       - image: owasp/zap2docker-weekly
-        environment:
-          APP_NAME: py-postgres      
     steps:
       - checkout
       - attach_workspace:
@@ -251,35 +257,26 @@ jobs:
           name: Run OWASP Zap against the app! (fails if the test takes more than 30 minutes)
           no_output_timeout: 30m
           command: |
+            #Set the application name
+            export APP_NAME="py-postgres"
+
             # if we are in production, do not do form posts, because they can potentially create cruft in the db.
             if [ "${CIRCLE_BRANCH}" = "master" ] ; then
               POSTFORM=false
             else
               POSTFORM=true
             fi
-
-            # send special auth header that lets us scan
-            export SIGNATURE_KEY=$(cat /tmp/workspace/rails_signature_key)
-            export TOKEN="$(cat /proc/sys/kernel/random/uuid)_$(date +%s)"
-            export HASHED_TOKEN=$(echo -n "${SIGNATURE_KEY}_${TOKEN}" | sha256sum | awk '{print $1}')
             export ZAP_CONFIG=" \
-              -config globalexcludeurl.url_list.url\(0\).regex=.*/robots\.txt.* \
+              -config globalexcludeurl.url_list.url\(0\).regex='.*/robots\.txt.*' \
               -config globalexcludeurl.url_list.url\(0\).description='Exclude robots.txt' \
               -config globalexcludeurl.url_list.url\(0\).enabled=true \
-              -config replacer.full_list\(0\).description='auth header for app' \
-              -config replacer.full_list\(0\).enabled=true \
-              -config replacer.full_list\(0\).matchtype=REQ_HEADER \
-              -config replacer.full_list\(0\).matchstr=ZAP-Authorization \
-              -config replacer.full_list\(0\).regex=false \
-              -config replacer.full_list\(0\).replacement=${HASHED_TOKEN}_${TOKEN} \
-              -config connection.defaultUserAgent='Mozilla/5.0 (Windows NT 6.3; WOW64; rv:39.0) Gecko/20100101 Firefox/39.0 ZAP/2.7' \
-              -config spider.postform=${POSTFORM} \
-            "
-            if zap-full-scan.py -m 5 -z "${ZAP_CONFIG}" -t "$(cat /tmp/workspace/${APP_NAME}_url)" ; then
+              -config spider.postform=${POSTFORM}"
+            if zap-full-scan.py -m 5 -z "${ZAP_CONFIG}" -t "$(cat  /tmp/workspace/${APP_NAME}_url)" ; then
               echo "OWASP ZAP scan found no problems.  Yay!"
             else
               echo "XXX run a script or send email to notify Admins that the OWASP ZAP scan found issues here"
             fi
+
 
   promote-py-postgres:
     docker:
@@ -540,10 +537,16 @@ workflows:
                 # Add more branches here if you want them automatically deployed.
                 - master
                 - staging
-                - dev        
+                - dev      
+      - test-py-postgres:
+          requires:
+            - deploy-py-postgres  
+      - owaspzap-py-postgres:
+          requires:
+            - test-py-postgres  
       - promote-py-postgres:
           requires:
-            - deploy-py-postgres    
+            - owaspzap-py-postgres    
       #Rails app jobs
 #      - deploy-rails:
 #          requires:
