@@ -154,6 +154,9 @@ jobs:
             #Load CIRCLE  environment variables as bash environment variables
             . "${BASH_ENV}" 
 
+            #Set the application name
+            export APP_NAME="py-postgres"
+
             #Set the number of intial instances to start to support the application.
             if [ "${CIRCLE_BRANCH}" = "master" ] ; then
               export INSTANCES=2
@@ -163,8 +166,6 @@ jobs:
             fi
             #export PROXY_URL="https://${GOOGLE_PROJECT_ID}.appspot.com/"
             export CONNECTION_NAME="${GOOGLE_PROJECT_ID}:us-east1:postgres"
-
-         
 
             #Run the database setup script
             #This process is a little involved as we must first setup a SQL proxy and python development environment to run the neccessary scripts.
@@ -180,20 +181,17 @@ jobs:
             curl https://dl.google.com/cloudsql/cloud_sql_proxy.linux.amd64 -o ./cloud_sql_proxy
             chmod 750 ./cloud_sql_proxy
             ./cloud_sql_proxy -instances=$CONNECTION_NAME=tcp:5432 -credential_file=${HOME}/gcloud-service-key.json & 
-            #kill_pid=$!
             #Create the tables
             echo "Running table creation script..."
             python cloudsql_postgresql/create_tables.py | true 
-            #Kill the proxy
-            #kill -9 $kill_pid
             echo "Generating app.yml for application..."
+
             #Create the app.yml that describes this application.
             #Pay special notice to the SQLALCHEMY_DATABASE_URI required to allow the Appengine service to connect to the database.
             cat <<EOF > cloudsql_postgresql/app.yaml
-
             runtime: python
             env: flex
-            service: py-postgres
+            service: ${APP_NAME}
             automatic_scaling:
               min_num_instances: ${INSTANCES}            
             entrypoint: gunicorn -b :8080 main:app
@@ -218,16 +216,70 @@ jobs:
             #[END gae_flex_postgres_settings]
             EOF
             
-            echo "Deploying application without promoting..."
+            #Start the actual deployment process
             cd cloudsql_postgresql
-            gcloud app deploy -q --no-promote --format=json > /tmp/py-postgres.json
-            cat /tmp/py-postgres.json | jq -r .versions[0].id > /tmp/workspace/py-postgres-version
-            export TARGET_VERSION=$(cat /tmp/workspace/py-postgres-version)
+            #Deploy app and save output to json file for later parsing
+            gcloud app deploy -q --no-promote --format=json > /tmp/${APP_NAME}.json
+            #Record the application version number and store it 
+            cat /tmp/${APP_NAME}.json | jq -r .versions[0].id > /tmp/workspace/${APP_NAME}-version
+            export TARGET_VERSION=$(cat /tmp/workspace/${APP_NAME}-version)
+            # Store signature key and URL so that we can test it later on.
+            echo "https://${TARGET_VERSION}-dot-${APP_NAME}-dot-${GOOGLE_PROJECT_ID}.appspot.com/" > /tmp/workspace/${APP_NAME}_url
+
+            #TEST
+            cat /tmp/${APP_NAME}.json
+
       - persist_to_workspace:
           root: /tmp/workspace
           paths:
-            - py-postgres-version
+            - ${APP_NAME}-version
 
+
+
+
+  owaspzap-py-postgres:
+    docker:
+      - image: owasp/zap2docker-weekly
+    steps:
+      - checkout
+      - attach_workspace:
+          at: /tmp/workspace
+      - run:
+          name: Run OWASP Zap against the app! (fails if the test takes more than 30 minutes)
+          no_output_timeout: 30m
+          command: |
+            # if we are in production, do not do form posts, because they can potentially create cruft in the db.
+            if [ "${CIRCLE_BRANCH}" = "master" ] ; then
+              POSTFORM=false
+            else
+              POSTFORM=true
+            fi
+
+            #Set the application name
+            export APP_NAME="py-postgres"
+
+            # send special auth header that lets us scan
+            export SIGNATURE_KEY=$(cat /tmp/workspace/rails_signature_key)
+            export TOKEN="$(cat /proc/sys/kernel/random/uuid)_$(date +%s)"
+            export HASHED_TOKEN=$(echo -n "${SIGNATURE_KEY}_${TOKEN}" | sha256sum | awk '{print $1}')
+            export ZAP_CONFIG=" \
+              -config globalexcludeurl.url_list.url\(0\).regex=.*/robots\.txt.* \
+              -config globalexcludeurl.url_list.url\(0\).description='Exclude robots.txt' \
+              -config globalexcludeurl.url_list.url\(0\).enabled=true \
+              -config replacer.full_list\(0\).description='auth header for app' \
+              -config replacer.full_list\(0\).enabled=true \
+              -config replacer.full_list\(0\).matchtype=REQ_HEADER \
+              -config replacer.full_list\(0\).matchstr=ZAP-Authorization \
+              -config replacer.full_list\(0\).regex=false \
+              -config replacer.full_list\(0\).replacement=${HASHED_TOKEN}_${TOKEN} \
+              -config connection.defaultUserAgent='Mozilla/5.0 (Windows NT 6.3; WOW64; rv:39.0) Gecko/20100101 Firefox/39.0 ZAP/2.7' \
+              -config spider.postform=${POSTFORM} \
+            "
+            if zap-full-scan.py -m 5 -z "${ZAP_CONFIG}" -t "$(cat /tmp/workspace/${APP_NAME}_url)" ; then
+              echo "OWASP ZAP scan found no problems.  Yay!"
+            else
+              echo "XXX run a script or send email to notify Admins that the OWASP ZAP scan found issues here"
+            fi
 
   promote-py-postgres:
     docker:
@@ -258,6 +310,7 @@ jobs:
             else
               echo no py-postgres versions to clean up
             fi
+
 
   deploy-rails:
     docker:
