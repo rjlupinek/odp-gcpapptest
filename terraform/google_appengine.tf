@@ -1,10 +1,7 @@
-resource "google_app_engine_application" "app" {
-  project     = "${var.project_id}"
-  location_id = "${var.region}"
-}
+
 
 resource "google_app_engine_firewall_rule" "rule1000" {
-  project = "${google_app_engine_application.app.project}"
+  project = "${var.project_id}"
   priority = 1000
   description = "Terraform -  Allow GSA internal access."
   action = "ALLOW"
@@ -12,7 +9,7 @@ resource "google_app_engine_firewall_rule" "rule1000" {
 }
 
 resource "google_app_engine_firewall_rule" "rule1100" {
-  project = "${google_app_engine_application.app.project}"
+  project = "${var.project_id}"
   priority = 1100
   description = "Terraform -  Allow GCP IAP Proxy access."  
   action = "ALLOW"
@@ -20,7 +17,7 @@ resource "google_app_engine_firewall_rule" "rule1100" {
 }
 
 resource "google_app_engine_firewall_rule" "rule1200" {
-  project = "${google_app_engine_application.app.project}"
+  project = "${var.project_id}"
   priority = 4000
   description = "Terraform -  Deny anything not explicitly allowed."
   action = "DENY"
