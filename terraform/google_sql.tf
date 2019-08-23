@@ -1,6 +1,6 @@
 // Production Postgres Database
 resource "google_sql_database_instance" "postgres" {
-  name = "pypostgres"
+  name = "postgresdb"
   database_version = "POSTGRES_9_6"
   region = "${var.region}"
 
