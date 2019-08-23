@@ -1,7 +1,3 @@
-resource "google_app_engine_application" "app" {
-  project     = "${var.project_id}"
-  location_id = "${var.region}"
-}
 
 resource "google_app_engine_firewall_rule" "rule1000" {
   project = "${var.project_id}"
