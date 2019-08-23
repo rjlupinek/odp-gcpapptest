@@ -225,7 +225,7 @@ jobs:
             cat /tmp/${APP_NAME}.json | jq -r .versions[0].id > /tmp/workspace/${APP_NAME}-version
             export TARGET_VERSION=$(cat /tmp/workspace/${APP_NAME}-version)
             # Store signature key and URL so that we can test it later on.
-            echo "https://${TARGET_VERSION}-dot-${APP_NAME}-dot-${GOOGLE_PROJECT_ID}.appspot.com/" > /tmp/workspace/${APP_NAME}_url
+            echo "https://${TARGET_VERSION}-dot-${APP_NAME}-dot-${GOOGLE_PROJECT_ID}.appspot.com/" > /tmp/workspace/${APP_NAME}-url
 
       - persist_to_workspace:
           root: /tmp/workspace
@@ -271,7 +271,7 @@ jobs:
               -config globalexcludeurl.url_list.url\(0\).description='Exclude robots.txt' \
               -config globalexcludeurl.url_list.url\(0\).enabled=true \
               -config spider.postform=${POSTFORM}"
-            if zap-full-scan.py -m 5 -z "${ZAP_CONFIG}" -t "$(cat  /tmp/workspace/${APP_NAME}_url)" ; then
+            if zap-full-scan.py -m 5 -z "${ZAP_CONFIG}" -t "$(cat  /tmp/workspace/${APP_NAME}-url)" ; then
               echo "OWASP ZAP scan found no problems.  Yay!"
             else
               echo "XXX run a script or send email to notify Admins that the OWASP ZAP scan found issues here"
