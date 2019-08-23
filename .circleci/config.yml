@@ -166,7 +166,7 @@ jobs:
               export INSTANCES=1
             fi
             #export PROXY_URL="https://${GOOGLE_PROJECT_ID}.appspot.com/"
-            export CONNECTION_NAME="${GOOGLE_PROJECT_ID}:us-east1:postgres"
+            export CONNECTION_NAME="${GOOGLE_PROJECT_ID}:us-east1:pypostgres"
 
             #Run the database setup script
             #This process is a little involved as we must first setup a SQL proxy and python development environment to run the neccessary scripts.
@@ -177,7 +177,7 @@ jobs:
             #Setup the Cloud SQL proxy.
             echo "Setup the sql proxy..."
             #Set the SQLALCHEMY_DATABASE_URI as required for local connections to the cloud_sql_proxy.
-            export SQLALCHEMY_DATABASE_URI="postgresql+psycopg2://${CLOUDSQL_USERNAME}:${CLOUDSQL_PASSWORD}@127.0.0.1:5432/postgres"            
+            export SQLALCHEMY_DATABASE_URI="postgresql+psycopg2://${CLOUDSQL_USERNAME}:${CLOUDSQL_PASSWORD}@127.0.0.1:5432/pypostgres"            
             echo $(env | grep -E "^GCLOUD_SERVICE_KEY_${CIRCLE_BRANCH}=" | sed "s/^GCLOUD_SERVICE_KEY_${CIRCLE_BRANCH}=//") > ${HOME}/gcloud-service-key.json
             curl https://dl.google.com/cloudsql/cloud_sql_proxy.linux.amd64 -o ./cloud_sql_proxy
             chmod 750 ./cloud_sql_proxy
@@ -205,7 +205,7 @@ jobs:
                 # Replace user, password, database, and instance connection name with the values obtained
                 # when configuring your Cloud SQL instance.
                 SQLALCHEMY_DATABASE_URI: >-
-                  postgresql+psycopg2://${CLOUDSQL_USERNAME}:${CLOUDSQL_PASSWORD}@/postgres?host=/cloudsql/${CONNECTION_NAME}
+                  postgresql+psycopg2://${CLOUDSQL_USERNAME}:${CLOUDSQL_PASSWORD}@/pypostgres?host=/cloudsql/${CONNECTION_NAME}
 
             #[END gae_flex_postgres_env]
 
@@ -376,7 +376,7 @@ jobs:
               export INSTANCES=1
             fi
             export PROXY_URL="https://${GOOGLE_PROJECT_ID}.appspot.com/"
-            export CONNECTION_NAME="${GOOGLE_PROJECT_ID}:us-east1:postgres"
+            export CONNECTION_NAME="${GOOGLE_PROJECT_ID}:us-east1:pypostgres"
             cat <<EOF > rails-example/app.yaml
             runtime: ruby
             env: flex
