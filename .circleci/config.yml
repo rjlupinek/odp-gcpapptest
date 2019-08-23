@@ -133,6 +133,9 @@ jobs:
   deploy-py-postgres:
     docker:
       - image: google/cloud-sdk
+        environment:
+          APP_NAME: py-postgres
+
     steps:
       - attach_workspace:
           at: /tmp/workspace
@@ -154,8 +157,7 @@ jobs:
             #Load CIRCLE  environment variables as bash environment variables
             . "${BASH_ENV}" 
 
-            #Set the application name
-            export APP_NAME="py-postgres"
+
 
             #Set the number of intial instances to start to support the application.
             if [ "${CIRCLE_BRANCH}" = "master" ] ; then
@@ -240,6 +242,8 @@ jobs:
   owaspzap-py-postgres:
     docker:
       - image: owasp/zap2docker-weekly
+        environment:
+          APP_NAME: py-postgres      
     steps:
       - checkout
       - attach_workspace:
@@ -254,9 +258,6 @@ jobs:
             else
               POSTFORM=true
             fi
-
-            #Set the application name
-            export APP_NAME="py-postgres"
 
             # send special auth header that lets us scan
             export SIGNATURE_KEY=$(cat /tmp/workspace/rails_signature_key)
@@ -284,6 +285,8 @@ jobs:
   promote-py-postgres:
     docker:
       - image: google/cloud-sdk
+        environment:
+          APP_NAME: py-postgres      
     steps:
       - run:
           <<: *set-gcp-init-vars
@@ -292,23 +295,23 @@ jobs:
       - attach_workspace:
           at: /tmp/workspace
       - run:
-          name: Promote py-postgres
+          name: Promote ${APP_NAME}
           command: |
-            # promote py-postgres
-            export VERSION=$(cat /tmp/workspace/py-postgres-version)
-            gcloud app services set-traffic py-postgres --splits ${VERSION}=1 --quiet
-            echo promoted py-postgres ${VERSION} to "https://py-postgres-${GOOGLE_PROJECT_ID}.appspot.com/"
+            # promote application
+            export VERSION=$(cat /tmp/workspace/${APP_NAME}-version)
+            gcloud app services set-traffic ${APP_NAME} --splits ${VERSION}=1 --quiet
+            echo promoted ${APP_NAME} ${VERSION} to "https://${APP_NAME}-${GOOGLE_PROJECT_ID}.appspot.com/"
       - run:
           name: Clean up old versions
           no_output_timeout: 30m
           command: |
             # clean up old versions (leave the last two, so you can roll back)
-            VERSIONS=$(gcloud app versions list --service=py-postgres --format=list | sort -rn | tail -n +3 | sed 's/^.*\///') || true
+            VERSIONS=$(gcloud app versions list --service=${APP_NAME} --format=list | sort -rn | tail -n +3 | sed 's/^.*\///') || true
             if [ ! -z "${VERSIONS}" ] ; then
-              gcloud app versions delete --service=py-postgres ${VERSIONS} --quiet || true
-              echo cleaned up py-postgres ${VERSIONS}
+              gcloud app versions delete --service=${APP_NAME} ${VERSIONS} --quiet || true
+              echo cleaned up ${APP_NAME} ${VERSIONS}
             else
-              echo no py-postgres versions to clean up
+              echo no ${APP_NAME} versions to clean up
             fi
 
 
