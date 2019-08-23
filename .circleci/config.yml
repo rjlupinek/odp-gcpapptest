@@ -151,6 +151,9 @@ jobs:
           no_output_timeout: 20m
           command: |
 
+            #Load CIRCLE  environment variables as bash environment variables
+            . "${BASH_ENV}" 
+
             #Set the number of intial instances to start to support the application.
             if [ "${CIRCLE_BRANCH}" = "master" ] ; then
               export INSTANCES=2
@@ -158,11 +161,10 @@ jobs:
               export RAILS_ENV=${CIRCLE_BRANCH}
               export INSTANCES=1
             fi
-            export PROXY_URL="https://${GOOGLE_PROJECT_ID}.appspot.com/"
+            #export PROXY_URL="https://${GOOGLE_PROJECT_ID}.appspot.com/"
             export CONNECTION_NAME="${GOOGLE_PROJECT_ID}:us-east1:postgres"
 
-            #Load CIRCLE  environment variables as bash environment variables
-            . "${BASH_ENV}"          
+         
 
             #Run the database setup script
             #This process is a little involved as we must first setup a SQL proxy and python development environment to run the neccessary scripts.
@@ -178,12 +180,12 @@ jobs:
             curl https://dl.google.com/cloudsql/cloud_sql_proxy.linux.amd64 -o ./cloud_sql_proxy
             chmod 750 ./cloud_sql_proxy
             ./cloud_sql_proxy -instances=$CONNECTION_NAME=tcp:5432 -credential_file=${HOME}/gcloud-service-key.json & 
-            kill_pid=$!
+            #kill_pid=$!
             #Create the tables
             echo "Running table creation script..."
             python cloudsql_postgresql/create_tables.py | true 
             #Kill the proxy
-            kill -9 $kill_pid
+            #kill -9 $kill_pid
             echo "Generating app.yml for application..."
             #Create the app.yml that describes this application.
             #Pay special notice to the SQLALCHEMY_DATABASE_URI required to allow the Appengine service to connect to the database.
@@ -463,19 +465,19 @@ workflows:
                 - master
                 - staging
                 - dev      
-  #    - init_terraform_state:
-  #        requires:
-  #          - gcp_setup          
-  #    - plan_terraform:
-  #        requires:
-  #          - init_terraform_state
-  #    - apply_terraform:
-  #        requires:
-  #          - plan_terraform
+      - init_terraform_state:
+          requires:
+            - gcp_setup          
+      - plan_terraform:
+          requires:
+            - init_terraform_state
+      - apply_terraform:
+          requires:
+            - plan_terraform
       #Python Cloud SQL app jobs
       - deploy-py-postgres:
           requires:
-            - gcp_setup       
+            - plan_terraform      
           filters:
             branches:
               only:
