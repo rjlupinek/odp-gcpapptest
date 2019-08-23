@@ -130,7 +130,7 @@ jobs:
             export TF_VAR_cloudsql_password="$CLOUDSQL_PASSWORD"          
             cd terraform && terraform init -backend-config="bucket=gcp-terraform-state-${GOOGLE_PROJECT_ID}" && terraform apply -input=false -auto-approve
  
-  deploy-py-postgres:
+  deploy-pypostgres:
     docker:
       - image: google/cloud-sdk
 
@@ -156,7 +156,7 @@ jobs:
             . "${BASH_ENV}" 
 
             #Set the application name
-            export APP_NAME="py-postgres"
+            export APP_NAME="pypostgres"
 
             #Set the number of intial instances to start to support the application.
             if [ "${CIRCLE_BRANCH}" = "master" ] ; then
@@ -222,18 +222,18 @@ jobs:
             #Deploy app and save output to json file for later parsing
             gcloud app deploy -q --no-promote --format=json > /tmp/${APP_NAME}.json
             #Record the application version number and store it 
-            cat /tmp/${APP_NAME}.json | jq -r .versions[0].id > /tmp/workspace/${APP_NAME}-version
-            export TARGET_VERSION=$(cat /tmp/workspace/${APP_NAME}-version)
+            cat /tmp/${APP_NAME}.json | jq -r .versions[0].id > /tmp/workspace/${APP_NAME}_version
+            export TARGET_VERSION=$(cat /tmp/workspace/${APP_NAME}_version)
             # Store signature key and URL so that we can test it later on.
-            echo "https://${TARGET_VERSION}-dot-${APP_NAME}-dot-${GOOGLE_PROJECT_ID}.appspot.com/" > /tmp/workspace/${APP_NAME}-url
+            echo "https://${TARGET_VERSION}-dot-${APP_NAME}-dot-${GOOGLE_PROJECT_ID}.appspot.com/" > /tmp/workspace/${APP_NAME}_url
 
       - persist_to_workspace:
           root: /tmp/workspace
           paths:
-            - py-postgres-version
-            - py-postgres-url
+            - pypostgres_version
+            - pypostgres_url
 
-  test-py-postgres:
+  test-pypostgres:
     docker:
       - image: google/cloud-sdk
     steps:
@@ -243,10 +243,12 @@ jobs:
       - run:
           name: Test the app!
           command: |
-            echo "run tests here against $(cat /tmp/workspace/py-postgres-url) with an ${AUTH_HEADER} header"
+            #Set the application name
+            export APP_NAME="pypostgres"
+            echo "run tests here against $(cat /tmp/workspace/${APP_NAME}_url) with an ${AUTH_HEADER} header"
 
 
-  owaspzap-py-postgres:
+  owaspzap-pypostgres:
     docker:
       - image: owasp/zap2docker-weekly
     steps:
@@ -258,7 +260,7 @@ jobs:
           no_output_timeout: 30m
           command: |
             #Set the application name
-            export APP_NAME="py-postgres"
+            export APP_NAME="pypostgres"
 
             # if we are in production, do not do form posts, because they can potentially create cruft in the db.
             if [ "${CIRCLE_BRANCH}" = "master" ] ; then
@@ -271,18 +273,18 @@ jobs:
               -config globalexcludeurl.url_list.url\(0\).description='Exclude robots.txt' \
               -config globalexcludeurl.url_list.url\(0\).enabled=true \
               -config spider.postform=${POSTFORM}"
-            if zap-full-scan.py -m 5 -z "${ZAP_CONFIG}" -t "$(cat  /tmp/workspace/${APP_NAME}-url)" ; then
+            if zap-full-scan.py -m 5 -z "${ZAP_CONFIG}" -t "$(cat  /tmp/workspace/${APP_NAME}_url)" ; then
               echo "OWASP ZAP scan found no problems.  Yay!"
             else
               echo "XXX run a script or send email to notify Admins that the OWASP ZAP scan found issues here"
             fi
 
 
-  promote-py-postgres:
+  promote-pypostgres:
     docker:
       - image: google/cloud-sdk
         environment:
-          APP_NAME: py-postgres      
+          APP_NAME: pypostgres      
     steps:
       - run:
           <<: *set-gcp-init-vars
@@ -294,7 +296,7 @@ jobs:
           name: Promote ${APP_NAME}
           command: |
             # promote application
-            export VERSION=$(cat /tmp/workspace/${APP_NAME}-version)
+            export VERSION=$(cat /tmp/workspace/${APP_NAME}_version)
             gcloud app services set-traffic ${APP_NAME} --splits ${VERSION}=1 --quiet
             echo promoted ${APP_NAME} ${VERSION} to "https://${APP_NAME}-${GOOGLE_PROJECT_ID}.appspot.com/"
       - run:
@@ -527,7 +529,7 @@ workflows:
           requires:
             - plan_terraform
       #Python Cloud SQL app jobs
-      - deploy-py-postgres:
+      - deploy-pypostgres:
           requires:
             - plan_terraform      
           filters:
@@ -538,15 +540,15 @@ workflows:
                 - master
                 - staging
                 - dev      
-      - test-py-postgres:
+      - test-pypostgres:
           requires:
-            - deploy-py-postgres  
-      - owaspzap-py-postgres:
+            - deploy-pypostgres  
+      - owaspzap-pypostgres:
           requires:
-            - test-py-postgres  
-      - promote-py-postgres:
+            - test-pypostgres  
+      - promote-pypostgres:
           requires:
-            - owaspzap-py-postgres    
+            - owaspzap-pypostgres    
       #Rails app jobs
 #      - deploy-rails:
 #          requires:
