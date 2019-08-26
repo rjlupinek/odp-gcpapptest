@@ -17,7 +17,7 @@ resource "google_app_engine_firewall_rule" "rule1100" {
 
 resource "google_app_engine_firewall_rule" "rule1200" {
   project = "${var.project_id}"
-  priority = 4000
+  priority = 20000
   description = "Terraform -  Deny anything not explicitly allowed."
   action = "DENY"
   source_range = "*"

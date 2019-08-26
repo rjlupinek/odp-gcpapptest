@@ -64,10 +64,10 @@ def index():
     user_ip = request.remote_addr
 
     # Keep only the first two octets of the IP address.
-    if is_ipv6(user_ip):
-        user_ip = ':'.join(user_ip.split(':')[:2])
-    else:
-        user_ip = '.'.join(user_ip.split('.')[:2])
+    #if is_ipv6(user_ip):
+    #    user_ip = ':'.join(user_ip.split(':')[:2])
+    #else:
+    #    user_ip = '.'.join(user_ip.split('.')[:2])
 
     visit = Visit(
         user_ip=user_ip,
