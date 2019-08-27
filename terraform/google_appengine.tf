@@ -4,7 +4,7 @@ resource "google_app_engine_firewall_rule" "rule1000" {
   priority = 1000
   description = "GSA Public range."
   action = "ALLOW"
-  source_range = "159.142.0.0/16	"
+  source_range = "159.142.0.0/16"
 }
 
 resource "google_app_engine_firewall_rule" "rule1200" {
