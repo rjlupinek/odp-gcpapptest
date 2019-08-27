@@ -11,6 +11,11 @@ resource "google_sql_database_instance" "postgres" {
       enabled = true
       start_time = "05:00"
     }
+    maintenance_window {
+      day = "5"
+      hour = "22"
+      update_track = "stable"
+    }
   }
 }
 
