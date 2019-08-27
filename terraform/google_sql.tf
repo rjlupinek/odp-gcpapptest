@@ -13,7 +13,7 @@ resource "google_sql_database_instance" "postgres" {
     }
     maintenance_window {
       day = "5"
-      hour = "22"
+      hour = "2" #UTC = EST + 4
       update_track = "stable"
     }
   }
