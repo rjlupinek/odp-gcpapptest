@@ -12,7 +12,7 @@ resource "google_sql_database_instance" "postgres" {
       start_time = "05:00"
     }
     maintenance_window {
-      day = "5"
+      day = "6"
       hour = "2" #UTC = EST + 4
       update_track = "stable"
     }
