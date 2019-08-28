@@ -72,7 +72,7 @@ def create_log(log_name,log_entry):
     # Selects the log to write to
     logger = logging_client.logger(log_name)
     # Writes the log entry
-    logger.log_text(text)
+    logger.log_text(log_entry)
 
 @app.route('/')
 def index():
