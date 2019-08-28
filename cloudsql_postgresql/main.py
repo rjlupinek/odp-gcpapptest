@@ -78,6 +78,12 @@ def create_log(log_name,log_entry):
 def index():
     user_ip = request.remote_addr
 
+    #Get the real IP if behind proxy
+    if request.headers.getlist("X-Forwarded-For"):
+    user_ip = request.headers.getlist("X-Forwarded-For")[0]
+    else:
+    user_ip = request.remote_addr
+
     # Keep only the first two octets of the IP address.
     #if is_ipv6(user_ip):
     #    user_ip = ':'.join(user_ip.split(':')[:2])
@@ -92,10 +98,10 @@ def index():
     db.session.add(visit)
     db.session.commit()
 
-
-
     visits = Visit.query.order_by(sqlalchemy.desc(Visit.timestamp)).limit(10)
-    create_log('pypostgresql',user_ip)
+    #Log to Stackdriver.
+    log_entry = 'This is a test log entry for Stackdriver.' + user_ip
+    create_log('pypostgresql-test-log', log_entry )
 
     results = [
         'Time: {} Addr: {}'.format(x.timestamp, x.user_ip)
