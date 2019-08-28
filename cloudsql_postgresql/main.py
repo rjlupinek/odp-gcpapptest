@@ -27,6 +27,8 @@ import socket
 from flask import Flask, request
 from flask_sqlalchemy import SQLAlchemy
 import sqlalchemy
+# Imports the Google Cloud client library
+from google.cloud import logging
 
 
 app = Flask(__name__)
@@ -46,7 +48,13 @@ def is_ipv6(addr):
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ['SQLALCHEMY_DATABASE_URI']
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
+#Instantiate SQLAlchemy
 db = SQLAlchemy(app)
+
+
+#Setup Stackdriver logging
+# Instantiates a logging client
+logging_client = logging.Client()
 
 
 class Visit(db.Model):
@@ -58,6 +66,13 @@ class Visit(db.Model):
         self.timestamp = timestamp
         self.user_ip = user_ip
 
+
+def create_log(log_name,log_entry):
+    # The name of the log to write to
+    # Selects the log to write to
+    logger = logging_client.logger(log_name)
+    # Writes the log entry
+    logger.log_text(text)
 
 @app.route('/')
 def index():
@@ -77,7 +92,10 @@ def index():
     db.session.add(visit)
     db.session.commit()
 
+
+
     visits = Visit.query.order_by(sqlalchemy.desc(Visit.timestamp)).limit(10)
+    create_log('pypostgresql',user_ip)
 
     results = [
         'Time: {} Addr: {}'.format(x.timestamp, x.user_ip)
