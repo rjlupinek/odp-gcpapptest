@@ -179,6 +179,9 @@ jobs:
             #Set the SQLALCHEMY_DATABASE_URI as required for local connections to the cloud_sql_proxy.
             export SQLALCHEMY_DATABASE_URI="postgresql+psycopg2://${CLOUDSQL_USERNAME}:${CLOUDSQL_PASSWORD}@127.0.0.1:5432/postgres"            
             echo $(env | grep -E "^GCLOUD_SERVICE_KEY_${CIRCLE_BRANCH}=" | sed "s/^GCLOUD_SERVICE_KEY_${CIRCLE_BRANCH}=//") > ${HOME}/gcloud-service-key.json
+            #Variable used to authenticate by the google-cloud-logging module
+            export GOOGLE_APPLICATION_CREDENTIALS=${HOME}/gcloud-service-key.json
+            #Download the cloud_sql_proxy binary
             curl https://dl.google.com/cloudsql/cloud_sql_proxy.linux.amd64 -o ./cloud_sql_proxy
             chmod 750 ./cloud_sql_proxy
             ./cloud_sql_proxy -instances=$CONNECTION_NAME=tcp:5432 -credential_file=${HOME}/gcloud-service-key.json & 
