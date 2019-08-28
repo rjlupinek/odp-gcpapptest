@@ -76,13 +76,12 @@ def create_log(log_name,log_entry):
 
 @app.route('/')
 def index():
-    user_ip = request.remote_addr
 
     #Get the real IP if behind proxy
     if request.headers.getlist("X-Forwarded-For"):
-    user_ip = request.headers.getlist("X-Forwarded-For")[0]
+        user_ip = request.headers.getlist("X-Forwarded-For")[0]
     else:
-    user_ip = request.remote_addr
+        user_ip = request.remote_addr
 
     # Keep only the first two octets of the IP address.
     #if is_ipv6(user_ip):
