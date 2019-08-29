@@ -8,7 +8,7 @@ resource "google_monitoring_notification_channel" "email" {
 
 #Monitoring Connections
 resource "google_monitoring_alert_policy" "alert_policy_connections"{
-  display_name = "pypostgresql-connection-limit-test"
+  display_name = "Connection limit test - App Engine - pypostgresql"
   combiner= "OR"
   conditions {
       display_name = "GAE Application - Connections for i-ise-04302019-playground, pypostgresql"
@@ -38,18 +38,19 @@ resource "google_monitoring_alert_policy" "alert_policy_connections"{
 
 
 resource "google_monitoring_alert_policy" "alert_policy_owner"{
-  display_name = "Project Ownership assignments-changes"
+  display_name = "Project Ownership assignments changes"
   combiner= "OR"
   conditions {
       display_name = "logging/user/Project-Ownership-Assignments-Changes"
       condition_threshold = {
         aggregations {
           alignment_period = "60s"
-          per_series_aligner = "ALIGN_NONE"
+          per_series_aligner = "ALIGN_COUNT"
         }
         comparison = "COMPARISON_GT"
         duration = "60s"
         filter = "metric.type=\"logging.googleapis.com/user/Project-Ownership-Assignments-Changes\" resource.type=\"global\" resource.label.\"project_id\"=\"${var.project_id}\""
+        threshold_value = 1
         trigger = {
           count = 1
         }
@@ -63,14 +64,14 @@ resource "google_monitoring_alert_policy" "alert_policy_owner"{
 
 
 resource "google_monitoring_alert_policy" "alert_policy_instance_count"{
-  display_name = "Project Ownership assignments-changes"
+  display_name = "Instance count max exceeded - App Engine - pypostgresql"
   combiner= "OR"
   conditions {
       display_name = "instance count exceeded"
       condition_threshold = {
         aggregations {
           alignment_period = "60s"
-          per_series_aligner = "ALIGN_RATE"
+          per_series_aligner = "ALIGN_COUNT"
         }
         comparison = "COMPARISON_GT"
         duration = "60s"
@@ -82,7 +83,7 @@ resource "google_monitoring_alert_policy" "alert_policy_instance_count"{
       }
   }
   documentation = {
-    content = "# Warning\n\n## Error message:\n\nInstance count for pypostgresql has been exceeded.\nThis alert policy is configured via Terraform."
+    content = "# Warning\n\n## Error message:\n\nInstance count max for pypostgresql has been exceeded.\nThis alert policy is configured via Terraform."
     mime_type = "text/markdown"
   }
 }
