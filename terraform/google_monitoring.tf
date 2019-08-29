@@ -45,6 +45,7 @@ resource "google_monitoring_alert_policy" "alert_policy_owner"{
       condition_threshold = {
         aggregations {
           alignment_period = "60s"
+          per_series_aligner = "ALIGN_NONE"
         }
         comparison = "COMPARISON_GT"
         duration = "60s"
