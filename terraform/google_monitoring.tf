@@ -49,8 +49,7 @@ resource "google_monitoring_alert_policy" "alert_policy_owner"{
         }
         comparison = "COMPARISON_GT"
         duration = "60s"
-        filter = "metric.type=\"logging.googleapis.com/user/Project-Ownership-Assignments-Changes\""
-        threshold_value = 1
+        filter = "metric.type=\"logging.googleapis.com/user/Project-Ownership-Assignments-Changes\" resource.type=\"global\" resource.label.\"project_id\"=\"${var.project_id}\""
         trigger = {
           count = 1
         }
