@@ -129,6 +129,7 @@ jobs:
             export TF_VAR_project_id=${GOOGLE_PROJECT_ID}
             export TF_VAR_environment=${CIRCLE_BRANCH}
             export TF_VAR_notification_email="$NOTIFICATION_EMAIL"
+            export TF_VAR_cloudsql_db_name="$CLOUDSQL_DB"            
             export TF_VAR_cloudsql_username="$CLOUDSQL_USERNAME"
             export TF_VAR_cloudsql_password="$CLOUDSQL_PASSWORD"          
             cd terraform && terraform init -backend-config="bucket=gcp-terraform-state-${GOOGLE_PROJECT_ID}" && terraform apply -input=false -auto-approve
