@@ -27,7 +27,7 @@ resource "google_monitoring_alert_policy" "alert_policy_connections"{
   }
   documentation = {
     content = "# Warning!!!\n\nError message:\n\nThis is just a simple test to validate alerting policy configuration.\nThis alert policy is configured via Terraform."
-    mimeType = "text/markdown"
+    mime_type = "text/markdown"
   }
 
   notification_channels = [
