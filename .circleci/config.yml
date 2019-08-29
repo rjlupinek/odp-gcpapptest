@@ -130,7 +130,7 @@ jobs:
             export TF_VAR_cloudsql_password="$CLOUDSQL_PASSWORD"          
             cd terraform && terraform init -backend-config="bucket=gcp-terraform-state-${GOOGLE_PROJECT_ID}" && terraform apply -input=false -auto-approve
  
-  deploy-pypostgres:
+  deploy-pypostgresql:
     docker:
       - image: google/cloud-sdk
 
@@ -156,7 +156,8 @@ jobs:
             . "${BASH_ENV}" 
 
             #Set the application name
-            export APP_NAME="pypostgres"
+            export APP_NAME="pypostgresql"
+            export DB_NAME="pypostgresql"
 
             #Set the number of intial instances to start to support the application.
             if [ "${CIRCLE_BRANCH}" = "master" ] ; then
@@ -166,7 +167,7 @@ jobs:
               export INSTANCES=1
             fi
             #export PROXY_URL="https://${GOOGLE_PROJECT_ID}.appspot.com/"
-            export CONNECTION_NAME="${GOOGLE_PROJECT_ID}:us-east1:postgresdb"
+            export CONNECTION_NAME="${GOOGLE_PROJECT_ID}:us-east1:${DB_NAME}"
 
             #Run the database setup script
             #This process is a little involved as we must first setup a SQL proxy and python development environment to run the neccessary scripts.
@@ -233,10 +234,10 @@ jobs:
       - persist_to_workspace:
           root: /tmp/workspace
           paths:
-            - pypostgres_version
-            - pypostgres_url
+            - pypostgresql_version
+            - pypostgresql_url
 
-  test-pypostgres:
+  test-pypostgresql:
     docker:
       - image: google/cloud-sdk
     steps:
@@ -247,11 +248,11 @@ jobs:
           name: Test the app!
           command: |
             #Set the application name
-            export APP_NAME="pypostgres"
+            export APP_NAME="pypostgresql"
             echo "run tests here against $(cat /tmp/workspace/${APP_NAME}_url) with an ${AUTH_HEADER} header"
 
 
-  owaspzap-pypostgres:
+  owaspzap-pypostgresql:
     docker:
       - image: owasp/zap2docker-weekly
     steps:
@@ -263,7 +264,7 @@ jobs:
           no_output_timeout: 30m
           command: |
             #Set the application name
-            export APP_NAME="pypostgres"
+            export APP_NAME="pypostgresql"
 
             # if we are in production, do not do form posts, because they can potentially create cruft in the db.
             if [ "${CIRCLE_BRANCH}" = "master" ] ; then
@@ -283,11 +284,11 @@ jobs:
             fi
 
 
-  promote-pypostgres:
+  promote-pypostgresql:
     docker:
       - image: google/cloud-sdk
         environment:
-          APP_NAME: pypostgres      
+          APP_NAME: pypostgresql      
     steps:
       - run:
           <<: *set-gcp-init-vars
@@ -339,7 +340,7 @@ workflows:
           requires:
             - plan_terraform
       #Python Cloud SQL app jobs
-      - deploy-pypostgres:
+      - deploy-pypostgresql:
           requires:
             - apply_terraform    
           filters:
@@ -350,12 +351,12 @@ workflows:
                 - master
                 - staging
                 - dev      
-      - test-pypostgres:
+      - test-pypostgresql:
           requires:
-            - deploy-pypostgres  
-      - owaspzap-pypostgres:
+            - deploy-pypostgresql  
+      - owaspzap-pypostgresql:
           requires:
-            - test-pypostgres  
-      - promote-pypostgres:
+            - test-pypostgresql  
+      - promote-pypostgresql:
           requires:
-            - owaspzap-pypostgres    
+            - owaspzap-pypostgresql    
