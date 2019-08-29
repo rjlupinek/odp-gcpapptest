@@ -101,6 +101,7 @@ jobs:
             . "${BASH_ENV}"
             export TF_VAR_project_id=${GOOGLE_PROJECT_ID}
             export TF_VAR_environment=${CIRCLE_BRANCH}
+            export TF_VAR_cloudsql_db_name="$CLOUDSQL_DB"
             export TF_VAR_cloudsql_username="$CLOUDSQL_USERNAME"
             export TF_VAR_cloudsql_password="$CLOUDSQL_PASSWORD"
             cd terraform && terraform init -backend-config="bucket=gcp-terraform-state-${GOOGLE_PROJECT_ID}" && terraform plan -input=false
@@ -157,7 +158,6 @@ jobs:
 
             #Set the application name
             export APP_NAME="pypostgresql"
-            export DB_NAME="pypostgresql"
 
             #Set the number of intial instances to start to support the application.
             if [ "${CIRCLE_BRANCH}" = "master" ] ; then
@@ -167,7 +167,7 @@ jobs:
               export INSTANCES=1
             fi
             #export PROXY_URL="https://${GOOGLE_PROJECT_ID}.appspot.com/"
-            export CONNECTION_NAME="${GOOGLE_PROJECT_ID}:us-east1:${DB_NAME}"
+            export CONNECTION_NAME="${GOOGLE_PROJECT_ID}:us-east1:${CLOUDSQL_DB}"
 
             #Run the database setup script
             #This process is a little involved as we must first setup a SQL proxy and python development environment to run the neccessary scripts.
