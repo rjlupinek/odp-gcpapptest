@@ -1,3 +1,11 @@
+resource "google_monitoring_notification_channel" "email" {
+  display_name = "Test Notification Channel"
+  type = "email"
+  labels = {
+    email_address = "${var.notification_email}"
+  }
+}
+
 resource "google_monitoring_alert_policy" "alert_policy_connections"{
   display_name = "pypostgresql-connection-limit-test"
   combiner= "OR"
@@ -17,6 +25,14 @@ resource "google_monitoring_alert_policy" "alert_policy_connections"{
         }
       }
   }
+  documentation = {
+    content = "# Warning!!!\n\nError message:\n\nThis is just a simple test to validate alerting policy configuration.\nThis alert policy is configured via Terraform."
+    mimeType = "text/markdown"
+  }
+
+  notification_channels = [
+    "${google_monitoring_notification_channel.email.name}",
+  ]
 }
 
 #Owner of the project
