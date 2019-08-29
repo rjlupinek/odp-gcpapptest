@@ -1,8 +1,8 @@
 resource "google_monitoring_alert_policy" "alert_policy_connections"{
-  displayName = "tf-connection-limit-test"
+  display_name = "tf-connection-limit-test"
   combiner= "OR"
   conditions {
-      displayName = "GAE Application - Connections for i-ise-04302019-playground, pypostgres"
+      display_name = "GAE Application - Connections for i-ise-04302019-playground, pypostgres"
       condition_threshold = {
         aggregations {
           alignment_period = "60s"
@@ -17,9 +17,7 @@ resource "google_monitoring_alert_policy" "alert_policy_connections"{
         }
       }
   }
-  documentation = {
-    content = "# Warning!!!\n\n## Error message:\n\nThis is just a simple test to validate alerting policy configuration.\nThis alert policy is configured via Terraform."
-    mimeType = "text/markdown"
-  }
-  enabled = true
 }
+
+#Owner of the project
+#Service account modifications
