@@ -27,8 +27,8 @@ resource "google_logging_metric" "iam_policy_change" {
   }
 }
 
-#resource "google_logging_metric" "create_service_account" {
-#  name = "my-(custom)/metric"
+#resource "google_logging_metric" "project_owner_change" {
+#  name = "metric-owner-change"
 #  filter = "logName:\"projects/${var.project_id}/logs/cloudaudit.googleapis.com%2Factivity" AND methodName: "google.iam.admin.v1.CreateServiceAccount\""
 #  metric_descriptor {
 #    metric_kind = "DELTA"
@@ -95,30 +95,30 @@ resource "google_monitoring_alert_policy" "alert_policy_instance_count"{
 
 
 # Monitoring For Changes in Project Ownership
-resource "google_monitoring_alert_policy" "policy_owner"{
-  display_name = "Project Ownership assignments changes"
-  combiner= "OR"
-  conditions {
-      display_name = "policy_owner"
-      condition_threshold {
-        aggregations {
-          alignment_period = "60s"
-          per_series_aligner = "ALIGN_SUM"
-        }
-        comparison = "COMPARISON_GT"
-        duration = "60s"
-        filter = "metric.type=\"logging.googleapis.com/user/Project-Ownership-Assignments-Changes\" resource.type=\"global\" resource.label.\"project_id\"=\"${var.project_id}\""
-        threshold_value = 0
-        trigger {
-          count = 1
-        }
-      }
-  }
-  documentation {
-    content = "# Warning\n\n## Error message:\n\nThe project ownership has changed.\nThis alert policy is configured via Terraform."
-    mime_type = "text/markdown"
-  }
-}
+#resource "google_monitoring_alert_policy" "project_owner_change"{
+#  display_name = "Service account creation"
+#  combiner= "OR"
+#  conditions {
+#      display_name = "project_owner_change"
+#      condition_threshold {
+#        aggregations {
+#          alignment_period = "60s"
+#          per_series_aligner = "ALIGN_SUM"
+#        }
+#        comparison = "COMPARISON_GT"
+#        duration = "60s"
+#        filter = "metric.type=\"logging.googleapis.com/user/${google_logging_metric.project_owner_change.name}\" AND resource.type=\"global\""
+#        threshold_value = 0
+#        trigger {
+#          count = 1
+#        }
+#      }
+#  }
+#  documentation {
+#    content = "# Warning\n\n## Error message:\n\nThe project ownership has changed.\nThis alert policy is configured via Terraform."
+#    mime_type = "text/markdown"
+#  }
+#}
 
 
 # Service account creation
@@ -143,7 +143,7 @@ resource "google_monitoring_alert_policy" "create_service_account"{
       }
   }
   documentation {
-    content = "# Warning\n\n## Error message:\n\nThe project ownership has changed.\nThis alert policy is configured via Terraform."
+    content = "# Warning\n\n## Error message:\n\nNew service account has been created.\nThis alert policy is configured via Terraform."
     mime_type = "text/markdown"
   }
 }
@@ -171,7 +171,7 @@ resource "google_monitoring_alert_policy" "iam_policy_change"{
       }
   }
   documentation {
-    content = "# Warning\n\n## Error message:\n\nThe project ownership has changed.\nThis alert policy is configured via Terraform."
+    content = "# Warning\n\n## Error message:\n\nIAM Policy change.\nThis alert policy is configured via Terraform."
     mime_type = "text/markdown"
   }
 }
