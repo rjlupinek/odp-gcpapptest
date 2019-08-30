@@ -1,3 +1,5 @@
+#Configure monitoring notification channel for email.
+
 resource "google_monitoring_notification_channel" "email" {
   display_name = "Test Notification Channel"
   type = "email"
@@ -6,27 +8,59 @@ resource "google_monitoring_notification_channel" "email" {
   }
 }
 
-#Monitoring Connections
+
+resource "google_logging_metric" "create_service_account" {
+  name = "create-service-account/metric"
+  filter = "logName:\"projects/${var.project_id}/logs/cloudaudit.googleapis.com%2Factivity" AND protoPayload.methodName:"google.iam.admin.v1.CreateServiceAccount\""
+  metric_descriptor {
+    metric_kind = "DELTA"
+    value_type = "INT64"
+  }
+}
+
+resource "google_logging_metric" "iam_policy_change" {
+  name = "iam-policy-change/metric"
+  filter = "logName:\"projects/${var.project_id}/logs/cloudaudit.googleapis.com%2Factivity" AND protoPayload.methodName:"SetIamPolicy\""
+  metric_descriptor {
+    metric_kind = "DELTA"
+    value_type = "INT64"
+  }
+}
+
+
+#resource "google_logging_metric" "create_service_account" {
+#  name = "my-(custom)/metric"
+#  filter = "logName:\"projects/${var.project_id}/logs/cloudaudit.googleapis.com%2Factivity" AND methodName: "google.iam.admin.v1.CreateServiceAccount\""
+#  metric_descriptor {
+#    metric_kind = "DELTA"
+#    value_type = "INT64"
+#  }
+#}
+
+
+
+
+# Monitoring For Max Connections
 resource "google_monitoring_alert_policy" "alert_policy_connections"{
   display_name = "Connection limit test - App Engine - pypostgresql"
   combiner= "OR"
   conditions {
-      display_name = "GAE Application - Connections for i-ise-04302019-playground, pypostgresql"
-      condition_threshold = {
+      display_name = "GAE Application - Connections for ${var.project_id}, pypostgresql"
+      condition_threshold {
         aggregations {
           alignment_period = "60s"
           per_series_aligner = "ALIGN_MEAN"
         }
         comparison = "COMPARISON_GT"
         duration = "60s"
-        filter = "metric.type=\"appengine.googleapis.com/flex/connections/current\" resource.type=\"gae_app\" resource.label.\"project_id\"=\"i-ise-04302019-playground\" resource.label.\"module_id\"=\"pypostgresql\""
+        filter = "metric.type=\"appengine.googleapis.com/flex/connections/current\" resource.type=\"gae_app\" resource.label.\"project_id\"=\"${var.project_id}\" resource.label.\"module_id\"=\"pypostgresql\""
         threshold_value = 200
         trigger = {
           count = 1
         }
       }
   }
-  documentation = {
+  documentation {
     content = "# Warning!!!\n\nError message:\n\nThis is just a simple test to validate alerting policy configuration.\nThis alert policy is configured via Terraform."
     mime_type = "text/markdown"
   }
@@ -37,12 +71,40 @@ resource "google_monitoring_alert_policy" "alert_policy_connections"{
 }
 
 
+# Monitoring for number of running instances
+resource "google_monitoring_alert_policy" "alert_policy_instance_count"{
+  display_name = "Instance count max exceeded - App Engine - pypostgresql"
+  combiner= "OR"
+  conditions {
+      display_name = "instance count exceeded"
+      condition_threshold {
+        aggregations {
+          alignment_period = "60s"
+          per_series_aligner = "ALIGN_COUNT"
+        }
+        comparison = "COMPARISON_GT"
+        duration = "60s"
+        filter = "metric.type=\"appengine.googleapis.com/system/instance_count\" resource.type=\"gae_app\" resource.label.\"module_id\"=\"pypostgresql\""
+        threshold_value = 2
+        trigger = {
+          count = 1
+        }
+      }
+  }
+  documentation = {
+    content = "# Warning\n\n## Error message:\n\nInstance count max for pypostgresql has been exceeded.\nThis alert policy is configured via Terraform."
+    mime_type = "text/markdown"
+  }
+}
+
+
+# Monitoring For Changes in Project Ownership
 resource "google_monitoring_alert_policy" "alert_policy_owner"{
   display_name = "Project Ownership assignments changes"
   combiner= "OR"
   conditions {
       display_name = "logging/user/Project-Ownership-Assignments-Changes"
-      condition_threshold = {
+      condition_threshold {
         aggregations {
           alignment_period = "60s"
           per_series_aligner = "ALIGN_COUNT"
@@ -63,29 +125,5 @@ resource "google_monitoring_alert_policy" "alert_policy_owner"{
 }
 
 
-resource "google_monitoring_alert_policy" "alert_policy_instance_count"{
-  display_name = "Instance count max exceeded - App Engine - pypostgresql"
-  combiner= "OR"
-  conditions {
-      display_name = "instance count exceeded"
-      condition_threshold = {
-        aggregations {
-          alignment_period = "60s"
-          per_series_aligner = "ALIGN_COUNT"
-        }
-        comparison = "COMPARISON_GT"
-        duration = "60s"
-        filter = "metric.type=\"appengine.googleapis.com/system/instance_count\" resource.type=\"gae_app\" resource.label.\"module_id\"=\"pypostgresql\""
-        threshold_value = 2
-        trigger = {
-          count = 1
-        }
-      }
-  }
-  documentation = {
-    content = "# Warning\n\n## Error message:\n\nInstance count max for pypostgresql has been exceeded.\nThis alert policy is configured via Terraform."
-    mime_type = "text/markdown"
-  }
-}
+# Service account creation
 
-#Service account modifications
