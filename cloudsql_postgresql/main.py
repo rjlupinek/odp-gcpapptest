@@ -100,7 +100,7 @@ def index():
     visits = Visit.query.order_by(sqlalchemy.desc(Visit.timestamp)).limit(10)
     #Log to Stackdriver.
     log_entry = 'This is a test log entry for Stackdriver.  ' + user_ip
-    create_log('pypostgresql-test-log', log_entry )
+    create_log('applog.pypostgresql-test-log', log_entry )
 
     results = [
         'Time: {} Addr: {}'.format(x.timestamp, x.user_ip)
