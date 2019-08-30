@@ -44,7 +44,7 @@ resource "google_monitoring_alert_policy" "alert_policy_owner"{
       display_name = "logging/user/Project-Ownership-Assignments-Changes"
       condition_threshold = {
         aggregations {
-          alignment_period = "0s"
+          alignment_period = "60s"
           per_series_aligner = "ALIGN_COUNT"
         }
         comparison = "COMPARISON_GT"
@@ -70,7 +70,7 @@ resource "google_monitoring_alert_policy" "alert_policy_instance_count"{
       display_name = "instance count exceeded"
       condition_threshold = {
         aggregations {
-          alignment_period = "0s"
+          alignment_period = "60s"
           per_series_aligner = "ALIGN_COUNT"
         }
         comparison = "COMPARISON_GT"
