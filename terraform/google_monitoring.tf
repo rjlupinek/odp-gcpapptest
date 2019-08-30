@@ -103,7 +103,7 @@ resource "google_monitoring_alert_policy" "policy_owner"{
       condition_threshold {
         aggregations {
           alignment_period = "60s"
-          per_series_aligner = "ALIGN_COUNT"
+          per_series_aligner = "ALIGN_SUM"
         }
         comparison = "COMPARISON_GT"
         duration = "60s"
@@ -131,7 +131,7 @@ resource "google_monitoring_alert_policy" "create_service_account"{
       condition_threshold {
         aggregations {
           alignment_period = "60s"
-          per_series_aligner = "ALIGN_COUNT"
+          per_series_aligner = "ALIGN_SUM"
         }
         comparison = "COMPARISON_GT"
         duration = "60s"
@@ -159,7 +159,7 @@ resource "google_monitoring_alert_policy" "iam_policy_change"{
       condition_threshold {
         aggregations {
           alignment_period = "60s"
-          per_series_aligner = "ALIGN_COUNT"
+          per_series_aligner = "ALIGN_SUM"
         }
         comparison = "COMPARISON_GT"
         duration = "60s"
