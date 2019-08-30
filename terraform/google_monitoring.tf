@@ -55,7 +55,7 @@ resource "google_monitoring_alert_policy" "alert_policy_connections"{
         duration = "60s"
         filter = "metric.type=\"appengine.googleapis.com/flex/connections/current\" resource.type=\"gae_app\" resource.label.\"project_id\"=\"${var.project_id}\" resource.label.\"module_id\"=\"pypostgresql\""
         threshold_value = 200
-        trigger = {
+        trigger {
           count = 1
         }
       }
@@ -86,12 +86,12 @@ resource "google_monitoring_alert_policy" "alert_policy_instance_count"{
         duration = "60s"
         filter = "metric.type=\"appengine.googleapis.com/system/instance_count\" resource.type=\"gae_app\" resource.label.\"module_id\"=\"pypostgresql\""
         threshold_value = 2
-        trigger = {
+        trigger {
           count = 1
         }
       }
   }
-  documentation = {
+  documentation {
     content = "# Warning\n\n## Error message:\n\nInstance count max for pypostgresql has been exceeded.\nThis alert policy is configured via Terraform."
     mime_type = "text/markdown"
   }
@@ -113,12 +113,12 @@ resource "google_monitoring_alert_policy" "alert_policy_owner"{
         duration = "60s"
         filter = "metric.type=\"logging.googleapis.com/user/Project-Ownership-Assignments-Changes\" resource.type=\"global\" resource.label.\"project_id\"=\"${var.project_id}\""
         threshold_value = 1
-        trigger = {
+        trigger {
           count = 1
         }
       }
   }
-  documentation = {
+  documentation {
     content = "# Warning\n\n## Error message:\n\nThe project ownership has changed.\nThis alert policy is configured via Terraform."
     mime_type = "text/markdown"
   }
