@@ -10,7 +10,7 @@ resource "google_monitoring_notification_channel" "email" {
 
 
 resource "google_logging_metric" "create_service_account" {
-  name = "create-service-account/metric"
+  name = "metric-create-service-account"
   filter = "logName:\"projects/${var.project_id}/logs/cloudaudit.googleapis.com%2Factivity\" AND protoPayload.methodName:\"google.iam.admin.v1.CreateServiceAccount\""
   metric_descriptor {
     metric_kind = "DELTA"
@@ -19,14 +19,13 @@ resource "google_logging_metric" "create_service_account" {
 }
 
 resource "google_logging_metric" "iam_policy_change" {
-  name = "iam-policy-change/metric"
+  name = "metric-iam-policy-change"
   filter = "logName:\"projects/${var.project_id}/logs/cloudaudit.googleapis.com%2Factivity\" AND protoPayload.methodName:\"SetIamPolicy\""
   metric_descriptor {
     metric_kind = "DELTA"
     value_type = "INT64"
   }
 }
-
 
 #resource "google_logging_metric" "create_service_account" {
 #  name = "my-(custom)/metric"
@@ -36,9 +35,6 @@ resource "google_logging_metric" "iam_policy_change" {
 #    value_type = "INT64"
 #  }
 #}
-
-
-
 
 # Monitoring For Max Connections
 resource "google_monitoring_alert_policy" "alert_policy_connections"{
@@ -99,11 +95,11 @@ resource "google_monitoring_alert_policy" "alert_policy_instance_count"{
 
 
 # Monitoring For Changes in Project Ownership
-resource "google_monitoring_alert_policy" "alert_policy_owner"{
+resource "google_monitoring_alert_policy" "policy_owner"{
   display_name = "Project Ownership assignments changes"
   combiner= "OR"
   conditions {
-      display_name = "logging/user/Project-Ownership-Assignments-Changes"
+      display_name = "policy_owner"
       condition_threshold {
         aggregations {
           alignment_period = "60s"
@@ -127,3 +123,55 @@ resource "google_monitoring_alert_policy" "alert_policy_owner"{
 
 # Service account creation
 
+resource "google_monitoring_alert_policy" "create_service_account"{
+  display_name = "Service account creation"
+  combiner= "OR"
+  conditions {
+      display_name = "create_service_account"
+      condition_threshold {
+        aggregations {
+          alignment_period = "60s"
+          per_series_aligner = "ALIGN_COUNT"
+        }
+        comparison = "COMPARISON_GT"
+        duration = "60s"
+        filter = "metric.type=\"${google_logging_metric.create_service_account.name}"
+        threshold_value = 1
+        trigger {
+          count = 1
+        }
+      }
+  }
+  documentation {
+    content = "# Warning\n\n## Error message:\n\nThe project ownership has changed.\nThis alert policy is configured via Terraform."
+    mime_type = "text/markdown"
+  }
+}
+
+
+#IAM Policy Changes
+
+resource "google_monitoring_alert_policy" "iam_policy_change"{
+  display_name = "IAM Policy changes"
+  combiner= "OR"
+  conditions {
+      display_name = "iam_policy_change"
+      condition_threshold {
+        aggregations {
+          alignment_period = "60s"
+          per_series_aligner = "ALIGN_COUNT"
+        }
+        comparison = "COMPARISON_GT"
+        duration = "60s"
+        filter = "metric.type=\"${google_logging_metric.iam_policy_change.name}"
+        threshold_value = 1
+        trigger {
+          count = 1
+        }
+      }
+  }
+  documentation {
+    content = "# Warning\n\n## Error message:\n\nThe project ownership has changed.\nThis alert policy is configured via Terraform."
+    mime_type = "text/markdown"
+  }
+}
