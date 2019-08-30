@@ -108,7 +108,7 @@ resource "google_monitoring_alert_policy" "policy_owner"{
         comparison = "COMPARISON_GT"
         duration = "60s"
         filter = "metric.type=\"logging.googleapis.com/user/Project-Ownership-Assignments-Changes\" resource.type=\"global\" resource.label.\"project_id\"=\"${var.project_id}\""
-        threshold_value = 1
+        threshold_value = 0
         trigger {
           count = 1
         }
@@ -136,7 +136,7 @@ resource "google_monitoring_alert_policy" "create_service_account"{
         comparison = "COMPARISON_GT"
         duration = "60s"
         filter = "metric.type=\"logging.googleapis.com/user/${google_logging_metric.create_service_account.name}\" AND resource.type=\"global\""
-        threshold_value = 1
+        threshold_value = 0
         trigger {
           count = 1
         }
@@ -164,7 +164,7 @@ resource "google_monitoring_alert_policy" "iam_policy_change"{
         comparison = "COMPARISON_GT"
         duration = "60s"
         filter = "metric.type=\"logging.googleapis.com/user/${google_logging_metric.iam_policy_change.name}\" AND resource.type=\"global\""
-        threshold_value = 1
+        threshold_value = 0
         trigger {
           count = 1
         }
