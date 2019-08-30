@@ -11,7 +11,7 @@ resource "google_monitoring_notification_channel" "email" {
 
 resource "google_logging_metric" "create_service_account" {
   name = "create-service-account/metric"
-  filter = "logName:\"projects/${var.project_id}/logs/cloudaudit.googleapis.com%2Factivity" AND protoPayload.methodName:"google.iam.admin.v1.CreateServiceAccount\""
+  filter = "logName:\"projects/${var.project_id}/logs/cloudaudit.googleapis.com%2Factivity\" AND protoPayload.methodName:\"google.iam.admin.v1.CreateServiceAccount\""
   metric_descriptor {
     metric_kind = "DELTA"
     value_type = "INT64"
@@ -20,7 +20,7 @@ resource "google_logging_metric" "create_service_account" {
 
 resource "google_logging_metric" "iam_policy_change" {
   name = "iam-policy-change/metric"
-  filter = "logName:\"projects/${var.project_id}/logs/cloudaudit.googleapis.com%2Factivity" AND protoPayload.methodName:"SetIamPolicy\""
+  filter = "logName:\"projects/${var.project_id}/logs/cloudaudit.googleapis.com%2Factivity\" AND protoPayload.methodName:\"SetIamPolicy\""
   metric_descriptor {
     metric_kind = "DELTA"
     value_type = "INT64"
