@@ -8,11 +8,6 @@ resource "google_monitoring_notification_channel" "email" {
   }
 }
 
-########################
-#Create logging metrics#
-########################
-
-
 
 #CIS 2.4 Ensure log metric filter and alerts exists for Project Ownership assignments/changes
 
@@ -175,7 +170,7 @@ resource "google_logging_metric" "cis2_11_sql_instance_change" {
   }
 }
 
-resource "google_monitoring_alert_policy" "cis2_4_project_owner_change"{
+resource "google_monitoring_alert_policy" "cis2_11_sql_instance_change"{
   display_name = "cis2-11-sql-instance-change"
   combiner= "OR"
   conditions {
@@ -201,3 +196,4 @@ resource "google_monitoring_alert_policy" "cis2_4_project_owner_change"{
 }
 
 
+ 
