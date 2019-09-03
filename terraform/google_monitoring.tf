@@ -62,6 +62,16 @@ resource "google_logging_metric" "cis2_10_storage_iam_change" {
   }
 }
 
+#CIS 2.11 - Ensure log metric filter and alerts exists for SQL instance configuration changes
+
+resource "google_logging_metric" "cis2_11_sql_instance_change" {
+  name = "cis2-11-sql-instance-change"
+  filter = "logName:\"projects/${var.project_id}/logs/cloudaudit.googleapis.com%2Factivity\" AND protoPayload.methodName=\"cloudsql.instances.update\""
+  metric_descriptor {
+    metric_kind = "DELTA"
+    value_type = "INT64"
+  }
+}
 
 
 # Service account creation
