@@ -25,6 +25,31 @@ resource "google_logging_metric" "cis2_4_project_owner_change" {
   }
 }
 
+resource "google_monitoring_alert_policy" "cis2_4_project_owner_change"{
+  display_name = "cis2-4-project_owner-change"
+  combiner= "OR"
+  conditions {
+      display_name = "cis2-4-project_owner-change"
+      condition_threshold {
+        aggregations {
+          alignment_period = "60s"
+          per_series_aligner = "ALIGN_SUM"
+        }
+        comparison = "COMPARISON_GT"
+        duration = "60s"
+        filter = "metric.type=\"logging.googleapis.com/user/${google_logging_metric.cis2_4_project_owner_change}\" AND resource.type=\"global\""
+        threshold_value = 0
+        trigger {
+          count = 1
+        }
+      }
+  }
+  documentation {
+    content = "# Warning\n\n## Error message:\n\nCIS 2.4 Ensure log metric filter and alerts exists for Project Ownership assignments/changes triggered."
+    mime_type = "text/markdown"
+  }
+}
+
 
 #CIS 2.5 Ensure log metric filter and alerts exists for Audit Configuration 
 
