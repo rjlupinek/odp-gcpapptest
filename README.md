@@ -1,22 +1,32 @@
-# GCP App Engine template
-This repository contains a couple of example applications and
-supporting infrastructure and configuration files for Google App Engine.
-It is meant to be used by people in the GSA (and other agencies)
-as a guide to quickly get a lightweight application running
-safely and securely in GCP.  
+# odp-gcp-appengine-example
 
-![diagram of gcp org, project, apps, and services](gcp_diagram.png)
 
-The overall idea behind this project is
-to create a template that people can clone, add their application to, provision some GCP
-Projects, and then enable CircleCI
-to automatically provision dev/staging/production environments into those GCP Projects
-with good secrets management, backups, tests, and other controls that make their project 
-automatically use best [DevSecOps practices](https://tech.gsa.gov/guides/dev_sec_ops_guide),
-saving a lot of time/budget and also making it easy for people to get an ATO.
+## Overview
+This repository contains an example Google Cloud App Engine project.
+
+!!! PLACE IMAGE HERE !!!
+
+
+
+
+## Project Contents
+
+
+| Folder    |  Description    |
+|---        |---              |
+| .circleci   |   Directory housing the CircleCi CI code  |
+| cloudsql_postgresql  |  Sample Python Flask application that we deploy to GCP App Engine to illustrate  |
+| compliance  |  ???  |
+| gcp_setup |  Script to configured by the Application team and deployed by the GCAP team   |
+| gcp_setup_secrets     |  Production Terraform project that sets up the Stackdriver Logging for production environment.  |
+| terraform     |  Terraform code that configures all of the GCP resources that are owned by the Application Team, after running gcp_setup scripts, to successfully deploy their application.  |
 
 
 ## How to use this template
+
+
+EDIT ME!!!!
+
 
 This template is meant to be forked and edited.  Probably most of this
 documentation will be gone, replaced by documentation of your application,
@@ -28,7 +38,7 @@ it's technology, and your processes and procedures.
 * If you would like to test out how to get GCP going with some example apps,
   then follow the [Bootstrap Process](Bootstrap.md).  This is a good place to
   start just to get your feet wet with GCP and take the example apps for a
-  test drive.
+  test drive. 
 * If you would like to begin customizing this template for your application,
   then you should consult the [Customization document](Customize.md).
 * Compliance documentation and information about how to get a GSA LATO using
@@ -40,7 +50,7 @@ it's technology, and your processes and procedures.
   update the infrastructure, rotate secrets, etc.
 
 
-## Technologies used
+## Technologies used  
 
 ### Gitops/Infrastructure As Code
 
