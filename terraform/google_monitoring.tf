@@ -62,6 +62,31 @@ resource "google_logging_metric" "cis2_5_audit_config_change" {
   }
 }
 
+resource "google_monitoring_alert_policy" "cis2_5_audit_config_change"{
+  display_name = "cis2-5-audit-config-change"
+  combiner= "OR"
+  conditions {
+      display_name = "cis2-5-audit-config-change"
+      condition_threshold {
+        aggregations {
+          alignment_period = "60s"
+          per_series_aligner = "ALIGN_SUM"
+        }
+        comparison = "COMPARISON_GT"
+        duration = "60s"
+        filter = "metric.type=\"logging.googleapis.com/user/${google_logging_metric.cis2_5_audit_config_change.name}\" AND resource.type=\"global\""
+        threshold_value = 0
+        trigger {
+          count = 1
+        }
+      }
+  }
+  documentation {
+    content = "# Warning\n\n## Error message:\n\nCIS 2.5 Ensure log metric filter and alerts exists for Audit Configuration - has triggered."
+    mime_type = "text/markdown"
+  }
+}
+
 
 
 #CIS 2.6 Ensure log metric filter and alerts exists for Custom Role changes 
@@ -75,6 +100,32 @@ resource "google_logging_metric" "cis2_6_custom_role_change" {
   }
 }
 
+resource "google_monitoring_alert_policy" "cis2_6_custom_role_change"{
+  display_name = "cis2-6-custom-role-change"
+  combiner= "OR"
+  conditions {
+      display_name = "cis2-6-custom-role-change"
+      condition_threshold {
+        aggregations {
+          alignment_period = "60s"
+          per_series_aligner = "ALIGN_SUM"
+        }
+        comparison = "COMPARISON_GT"
+        duration = "60s"
+        filter = "metric.type=\"logging.googleapis.com/user/${google_logging_metric.cis2_6_custom_role_change.name}\" AND resource.type=\"global\""
+        threshold_value = 0
+        trigger {
+          count = 1
+        }
+      }
+  }
+  documentation {
+    content = "# Warning\n\n## Error message:\n\nCIS 2.6 Ensure log metric filter and alerts exists for Custom Role changes has triggered."
+    mime_type = "text/markdown"
+  }
+}
+
+
 
 #CIS 2.10 - Ensure log metric filter and alerts exists for Cloud Storage IAM permission changes
 
@@ -87,6 +138,32 @@ resource "google_logging_metric" "cis2_10_storage_iam_change" {
   }
 }
 
+resource "google_monitoring_alert_policy" "cis2_10_storage_iam_change"{
+  display_name = "cis2-10-storage-iam-change"
+  combiner= "OR"
+  conditions {
+      display_name = "cis2-10-storage-iam-change"
+      condition_threshold {
+        aggregations {
+          alignment_period = "60s"
+          per_series_aligner = "ALIGN_SUM"
+        }
+        comparison = "COMPARISON_GT"
+        duration = "60s"
+        filter = "metric.type=\"logging.googleapis.com/user/${google_logging_metric.cis2_10_storage_iam_change.name}\" AND resource.type=\"global\""
+        threshold_value = 0
+        trigger {
+          count = 1
+        }
+      }
+  }
+  documentation {
+    content = "# Warning\n\n## Error message:\n\nCIS 2.10 - Ensure log metric filter and alerts exists for Cloud Storage IAM permission changes - has triggered."
+    mime_type = "text/markdown"
+  }
+}
+
+
 #CIS 2.11 - Ensure log metric filter and alerts exists for SQL instance configuration changes
 
 resource "google_logging_metric" "cis2_11_sql_instance_change" {
@@ -98,32 +175,29 @@ resource "google_logging_metric" "cis2_11_sql_instance_change" {
   }
 }
 
-
-# Service account creation
-#
-#resource "google_monitoring_alert_policy" "create_service_account"{
-#  display_name = "Service account creation"
-#  combiner= "OR"
-#  conditions {
-#      display_name = "create_service_account"
-#      condition_threshold {
-#        aggregations {
-#          alignment_period = "60s"
-#          per_series_aligner = "ALIGN_SUM"
-#        }
-#        comparison = "COMPARISON_GT"
-#        duration = "60s"
-#        filter = "metric.type=\"logging.googleapis.com/user/${google_logging_metric.create_service_account.name}\" AND resource.type=\"global\""
-#        threshold_value = 0
-#        trigger {
-#          count = 1
-#        }
-#      }
-#  }
-#  documentation {
-#    content = "# Warning\n\n## Error message:\n\nNew service account has been created.\nThis alert policy is configured via Terraform."
-#    mime_type = "text/markdown"
-#  }
-#}
+resource "google_monitoring_alert_policy" "cis2_4_project_owner_change"{
+  display_name = "cis2-11-sql-instance-change"
+  combiner= "OR"
+  conditions {
+      display_name = "cis2-11-sql-instance-change"
+      condition_threshold {
+        aggregations {
+          alignment_period = "60s"
+          per_series_aligner = "ALIGN_SUM"
+        }
+        comparison = "COMPARISON_GT"
+        duration = "60s"
+        filter = "metric.type=\"logging.googleapis.com/user/${google_logging_metric.cis2_11_sql_instance_change.name}\" AND resource.type=\"global\""
+        threshold_value = 0
+        trigger {
+          count = 1
+        }
+      }
+  }
+  documentation {
+    content = "# Warning\n\n## Error message:\n\nCIS 2.11 - Ensure log metric filter and alerts exists for SQL instance configuration changes - has triggered."
+    mime_type = "text/markdown"
+  }
+}
 
 
