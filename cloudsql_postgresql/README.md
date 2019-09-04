@@ -1,7 +1,7 @@
-cloud_postgresql
+cloud_postgresql 
 ==========
 
-This project is a slightly enhanced sample Python Flask project pulled from the Google Cloud Platform Python samples.
+This project is a slightly enhanced sample Python Flask project pulled from the Google Cloud Platform Python samples. 
 
 [Source project](https://github.com/GoogleCloudPlatform/python-docs-samples/tree/master/appengine/flexible/cloudsql_postgresql)
 
@@ -30,7 +30,6 @@ Setup
 
 Project setup is not required.  All changes are handled through Environment Variables configured via Circle CI.
 See Project contents if you wish to understand the files that make up this project.
-
 
 
 Reference documentation
