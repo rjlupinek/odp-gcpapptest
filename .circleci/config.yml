@@ -134,6 +134,7 @@ jobs:
             export TF_VAR_cloudsql_password="$CLOUDSQL_PASSWORD"          
             cd terraform && terraform init -backend-config="bucket=gcp-terraform-state-${GOOGLE_PROJECT_ID}" && terraform apply -input=false -auto-approve
  
+ 
   deploy-pypostgresql:
     docker:
       - image: google/cloud-sdk
@@ -343,24 +344,24 @@ workflows:
       - apply_terraform:
           requires:
             - plan_terraform
-#      #Python Cloud SQL app jobs
-#      - deploy-pypostgresql:
-#          requires:
-#            - apply_terraform    
-#          filters:
-#            branches:
-#              only:
-#                # This is the list of branches which will be deployed automatically.
-#                # Add more branches here if you want them automatically deployed.
-#                - master
-#                - staging
-#                - dev      
-#      - test-pypostgresql:
-#          requires:
-#            - deploy-pypostgresql  
-#      - owaspzap-pypostgresql:
-#          requires:
-#            - test-pypostgresql  
-#      - promote-pypostgresql:
-#          requires:
-#            - owaspzap-pypostgresql    
+      #Python Cloud SQL app jobs
+      - deploy-pypostgresql:
+          requires:
+            - apply_terraform    
+          filters:
+            branches:
+              only:
+                # This is the list of branches which will be deployed automatically.
+                # Add more branches here if you want them automatically deployed.
+                - master
+                - staging
+                - dev      
+      - test-pypostgresql:
+          requires:
+            - deploy-pypostgresql  
+      - owaspzap-pypostgresql:
+          requires:
+            - test-pypostgresql  
+      - promote-pypostgresql:
+          requires:
+            - owaspzap-pypostgresql    
