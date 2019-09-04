@@ -10,7 +10,7 @@ meet their security requirements to speed them along the LATO, and eventually AT
 
 ### Diagram
 
-!!! PLACE IMAGE HERE !!!
+![diagram of gcp org, project, apps, and services](GCPAppEngineReferenceArchitecture.png)
 
 
 
