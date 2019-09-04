@@ -128,6 +128,7 @@ ROLES="
 	roles/cloudbuild.builds.builder
 	roles/compute.storageAdmin
 	roles/cloudkms.admin
+	roles/cloudkms.cryptoKeyDecrypter
 	roles/cloudscheduler.admin
 	roles/storage.admin
 	roles/logging.admin

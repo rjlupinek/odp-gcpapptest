@@ -1,46 +1,54 @@
-# GCP App Engine template
-This repository contains a couple of example applications and
-supporting infrastructure and configuration files for Google App Engine.
-It is meant to be used by people in the GSA (and other agencies)
-as a guide to quickly get a lightweight application running
-safely and securely in GCP.  
-
-![diagram of gcp org, project, apps, and services](gcp_diagram.png)
-
-The overall idea behind this project is
-to create a template that people can clone, add their application to, provision some GCP
-Projects, and then enable CircleCI
-to automatically provision dev/staging/production environments into those GCP Projects
-with good secrets management, backups, tests, and other controls that make their project 
-automatically use best [DevSecOps practices](https://tech.gsa.gov/guides/dev_sec_ops_guide),
-saving a lot of time/budget and also making it easy for people to get an ATO.
+# ODP GCP App Engine Template
 
 
-## How to use this template
+## Overview
 
-This template is meant to be forked and edited.  Probably most of this
-documentation will be gone, replaced by documentation of your application,
-it's technology, and your processes and procedures.
+This repository contains an Google Cloud App Engine project template.
+The goal of this project is to provide an application team with a template to quickly 
+meet their security requirements to speed them along the LATO, and eventually ATO, process.
 
-* If you would like to understand the architecture of the project and how it
-  fulfils the DevSecOps principles, you should start here and read our
-  [DevSecOps documentation](DEVSECOPS.md).
+
+### Diagram
+
+![diagram of gcp org, project, apps, and services](GCPAppEngineReferenceArchitecture.png)
+
+
+
+## Project Contents
+
+
+| Folder    |  Description    |
+|---        |---              |
+| .circleci   |   Directory housing the CircleCi CI code  |
+| cloudsql_postgresql  |  Sample Python Flask application that we deploy to GCP App Engine to illustrate  |
+| compliance  |  This dirctory contains all of the compliance documentation for this project |
+| gcp_setup |  Script to configured by the Application team and deployed by the GCAP team   |
+| gcp_setup_secrets     |  Production Terraform project that sets up the Stackdriver Logging for production environment.  |
+| terraform     |  Terraform code that configures all of the GCP resources that are owned by the Application Team, after running gcp_setup scripts, to successfully deploy their application.  |
+
+
+## Project Setup
+
+This template provides you with all of the components and steps required to get a example application
+up and running in the GCP App Engine environment.
+
+The provided example code is intended to run with little modification, but also be easily modified
+to meet your application teams needs without sacrificing core security requirements.
+
+
 * If you would like to test out how to get GCP going with some example apps,
   then follow the [Bootstrap Process](Bootstrap.md).  This is a good place to
   start just to get your feet wet with GCP and take the example apps for a
-  test drive.
+  test drive. 
 * If you would like to begin customizing this template for your application,
   then you should consult the [Customization document](Customize.md).
-* Compliance documentation and information about how to get a GSA LATO using
-  apps launched with this template can be
-  found in [Compliance.md](Compliance.md).
 * Operational procedures and workflows can be found in the 
   [Workflows documentation](Workflows.md).  This is an overview of how you
   should do development using a modified gitops system, how to find logs,
   update the infrastructure, rotate secrets, etc.
 
 
-## Technologies used
+## Technologies used  
 
 ### Gitops/Infrastructure As Code
 
@@ -59,6 +67,22 @@ Cloud SQL is an easy way to provision and manage databases.  We are using Postgr
 for our infrastructure, but you can use MySQL if you like.  Our configuration sets the
 production database to be HA, with staging/dev non-HA.
 
+### Google Stackdriver Logging
+
+Google Stackdriver Logging provides teams with the ability to log, aggregate logs, and
+export logs to external log platforms.
+
+We employ the Stackdriver Logging Client Library for Python to illustrate how to
+write logs within your application to Google Stackdriver.  https://cloud.google.com/logging/docs/reference/libraries
+
+### Google Stackdriver Monitoring
+
+Stackdriver Monitoring provides with the ability to monitor and report on predefined 
+events and metrics or custom logging metrics.
+
+We use Stackdriver Monitoring meeting certain CIS benchmarks, and we deploy the configuration
+using Terraform.
+
 ### Terraform
 Terraform orchestrates the project setup, creating databases, storage,
 secrets, etc.  https://www.terraform.io/
@@ -75,21 +99,7 @@ https://www.owasp.org/index.php/OWASP_Zed_Attack_Proxy_Project
 
 ## Example Applications
 
-### Rails / App Engine
-This is a simple app that uses ActiveRecord to store a "blog" in a db.
-It is deployed to GCP with an [OAuth2 Proxy](https://github.com/pusher/oauth2_proxy)
-in front of it, so to use it properly, you will need an Identity Provider
-to configure it with like login.gov.
+### Python / Cloud SQL Postgresql 
 
-To test locally, have ruby/bundler installed and 
-run `cd rails-example && bundle install && bin/rails server`.  You will be able
-to access the application on http://localhost:3000/.
-
-### .NET Core / App Engine
-This is a simple app that creates a list of URLs for "blogs" in a database.  
-This may change, but for now, you must use the netcoreapp2.1
-framework for applications deployed into App Engine.  It uses KMS to store
-antiforgery keys, and has basic auth enabled.
-
-To test locally, `cd dotnet-example && dotnet run`.
-This will operate on a local `blogging.db` sqlite db.
+This application records the visitor's IP address and stores it in a Postgresql.
+It also writes logs of each visit to Stackdriver Logging. 

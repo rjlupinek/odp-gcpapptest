@@ -4,201 +4,247 @@ version: 2
 # 
 # Workflows can be found at the bottom of this file.  They specify
 # what order the jobs run in and what depends on what.
-jobs:
+jobs: 
+
+  gcp_setup:
+    docker:
+      - image: google/cloud-sdk
+    steps:
+      - checkout
+      - run: &set-gcp-init-vars  #Create the service account json file for authentication,and set the project id from CircleCI variables..
+          name: set up job variables and key
+          command: |
+            echo $(env | grep -E "^GCLOUD_SERVICE_KEY_${CIRCLE_BRANCH}=" | sed "s/^GCLOUD_SERVICE_KEY_${CIRCLE_BRANCH}=//") > ${HOME}/gcloud-service-key.json
+            export GOOGLE_PROJECT_ID=$(env | awk -F= "/^GOOGLE_PROJECT_ID_${CIRCLE_BRANCH}=/ {print \$2}")
+            echo "export GOOGLE_PROJECT_ID='$GOOGLE_PROJECT_ID'" >> $BASH_ENV
+      - run: &install-gcp-sdk-nongoogle   #Install the Google Clound SDK if it is required.  None google/cloud-sdk images will most likely require this.
+          name: Setup Google Cloud SDK
+          command: |   
+            echo "Installing Google Cloud SDK..."        
+            if hash gcloud 2>/dev/null
+            then
+              echo "Google Cloud already installed..."
+            else
+              export GCLOUD_SDK_VERSION=258
+              curl https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-$GCLOUD_SDK_VERSION.0.0-linux-x86_64.tar.gz -o ./gcloud-sdk.tar.gz
+              tar xzf gcloud-sdk.tar.gz -C ~
+              rm gcloud-sdk.tar.gz
+              export PATH=~/google-cloud-sdk/bin:$PATH
+              echo 'export PATH=~/google-cloud-sdk/bin:$PATH' >> $BASH_ENV
+              source $BASH_ENV              
+            fi
+      - run: &initgcp-sdk #Authenticate using service account and configure the default project
+          name: Initialize Google Cloud SDK
+          command: |
+            gcloud auth activate-service-account --key-file ${HOME}/gcloud-service-key.json
+            gcloud config set project $GOOGLE_PROJECT_ID
+      - run: &getvars #Pull the secrets file for this project and decrypt it.
+          name: Download and decrypt secrets file
+          command: |
+            cd gcp_setup_secrets/
+            mkdir /tmp/workspace || true
+            ./gcp_setup_secrets.sh --project-id=$GOOGLE_PROJECT_ID --environment=${CIRCLE_BRANCH} --secrets-file=/tmp/workspace/vars.json --decrypt=true
+      - run: 
+          name: Install jq for parsing secrets file in the loadvars task
+          command: apt-get install jq -y                
+      - run: &loadvars #Load the secrets file as environment variables.
+          name: Load secrets into environment variables
+          command: |
+            OLDIFS="$IFS"
+            IFS=$'\n'
+            export SECRETS_FILE="/tmp/workspace/vars.json"
+            for env_var in $(jq 'to_entries|map("\(.key)='"'"'\(.value|tostring)'"'"'")|.[]' $SECRETS_FILE | sed -e 's/^"//' -e 's/"$//' )
+            do
+              echo "export $env_var" >> $BASH_ENV
+              export $env_var
+            done  
+            IFS="$OLDIFS"
+            . "${BASH_ENV}"
+      - persist_to_workspace:  #Save the decrypted secrets to vars.json and persist between jobs
+          root: /tmp/workspace
+          paths: 
+            - vars.json
+
   init_terraform_state:
     docker:
       - image: google/cloud-sdk
     steps:
       - attach_workspace:
           at: /tmp/workspace
-      - run: &setupjobvarsandkey
-          name: set up job variables and key
-          command: |
-            echo $(env | grep -E "^GCLOUD_SERVICE_KEY_${CIRCLE_BRANCH}=" | sed "s/^GCLOUD_SERVICE_KEY_${CIRCLE_BRANCH}=//") > ${HOME}/gcloud-service-key.json
-            export GOOGLE_PROJECT_ID=$(env | awk -F= "/^GOOGLE_PROJECT_ID_${CIRCLE_BRANCH}=/ {print \$2}")
-            echo "export GOOGLE_PROJECT_ID='$GOOGLE_PROJECT_ID'" >> $BASH_ENV
-      - run: &setupcloudsdk
-          name: Setup Google Cloud SDK
-          command: |
-            gcloud auth activate-service-account --key-file ${HOME}/gcloud-service-key.json
-            gcloud config set project $GOOGLE_PROJECT_ID
+      - run: 
+          <<: *set-gcp-init-vars
+      - run:
+          <<: *initgcp-sdk
       - run:
           name: create terraform state bucket
           command: |
             gsutil mb gs://gcp-terraform-state-$GOOGLE_PROJECT_ID || true
+
   plan_terraform:
     docker:
-      - image: hashicorp/terraform:0.11.13
-    steps:
-      - checkout
-      - run:
-          <<: *setupjobvarsandkey
-      - run:
-          name: Initialize and plan Terraform (check plan out here before approving!)
-          command: |
-            . "${BASH_ENV}"
-            export TF_VAR_project_id=${GOOGLE_PROJECT_ID}
-            export TF_VAR_environment=${CIRCLE_BRANCH}
-            cd terraform && terraform init -backend-config="bucket=gcp-terraform-state-$GOOGLE_PROJECT_ID" && terraform plan -input=false
-  apply_terraform:
-    docker:
-      - image: hashicorp/terraform:0.11.13
-    steps:
-      - checkout
-      - run:
-          <<: *setupjobvarsandkey
-      - run:
-          name: Apply Terraform
-          command: |
-            . "${BASH_ENV}"
-            export TF_VAR_project_id=$GOOGLE_PROJECT_ID
-            export TF_VAR_environment=${CIRCLE_BRANCH}
-            mkdir /tmp/workspace
-            cd terraform && terraform init -backend-config="bucket=gcp-terraform-state-$GOOGLE_PROJECT_ID" && terraform apply -input=false -auto-approve
-            terraform output -json > /tmp/workspace/tf-output.json
-      - persist_to_workspace:
-          root: /tmp/workspace
-          paths:
-            - tf-output.json
-  store_tf_output:
-    docker:
-      - image: google/cloud-sdk
+      - image: hashicorp/terraform:latest
     steps:
       - attach_workspace:
           at: /tmp/workspace
-      - run:
-          <<: *setupjobvarsandkey
-      - run:
-          <<: *setupcloudsdk
-      - run:
-          name: copy tf output into bucket
-          command: |
-            gsutil cp /tmp/workspace/tf-output.json gs://gcp-terraform-state-$GOOGLE_PROJECT_ID/tf-output.json
- 
-  deploy-rails:
-    docker:
-      - image: circleci/ruby:2.5.3-stretch
-    steps:
       - checkout
-      - restore_cache:
-          keys:
-            - v1-dependencies-{{ checksum "rails-example/Gemfile.lock" }}
-            - v1-dependencies-
       - run:
-          name: Install Ruby dependencies
-          command: |
-            cd rails-example
-            BUNDLER_VERSION=$(cat Gemfile.lock | tail -1 | tr -d " ") gem install bundler
-            bundle check || bundle install --deployment
-      - save_cache:
-          key: v1-dependencies-{{ checksum "rails-example/Gemfile.lock" }}
-          paths:
-            - rails-example/vendor/bundle
+          <<: *set-gcp-init-vars
+      - run: 
+          name: Install jq for parsing secrets file
+          command: apk add -U --no-cache jq
+      - run:  #Load variables
+          <<: *loadvars
       - run:
-          <<: *setupjobvarsandkey
-      - run: &setupcloudsdk-nongoogle
-          name: Setup Google Cloud SDK
+          name: Initialize and plan Terraform (check plan out here before approving!)
           command: |
-            export GCLOUD_SDK_VERSION=244
-            curl https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-$GCLOUD_SDK_VERSION.0.0-linux-x86_64.tar.gz -o ./gcloud-sdk.tar.gz
-            tar xzf gcloud-sdk.tar.gz -C ~
-            rm gcloud-sdk.tar.gz
-            export PATH=~/google-cloud-sdk/bin:$PATH
-            gcloud auth activate-service-account --key-file ${HOME}/gcloud-service-key.json
-            gcloud config set project $GOOGLE_PROJECT_ID
-            echo 'export PATH=~/google-cloud-sdk/bin:$PATH' >> $BASH_ENV
-            source $BASH_ENV
-      - run:
-          name: create an empty default app if needed for bootstrapping
-          no_output_timeout: 20m
-          command: |
-            if gcloud app versions list --service=default --format=text >/dev/null 2>&1 ; then
-              echo default app already set up
-            else
-              echo ===================================================
-              echo seeding project with a default app so that the other versions can deploy
-              echo this should only happen once, while you are bootstrapping the environment
-              echo and it should go away once the real default app is deployed.
-              echo This is needed because you must deploy a default service before you
-              echo deploy any other service.
-              echo ===================================================
+            #Load CIRCLE  environment variables as bash environment variables
+            . "${BASH_ENV}"
+            export TF_VAR_project_id=${GOOGLE_PROJECT_ID}
+            export TF_VAR_environment=${CIRCLE_BRANCH}
+            export TF_VAR_notification_email="$NOTIFICATION_EMAIL"            
+            export TF_VAR_cloudsql_db_name="$CLOUDSQL_DB"
+            export TF_VAR_cloudsql_username="$CLOUDSQL_USERNAME"
+            export TF_VAR_cloudsql_password="$CLOUDSQL_PASSWORD"
+            cd terraform && terraform init -backend-config="bucket=gcp-terraform-state-${GOOGLE_PROJECT_ID}" && terraform plan -input=false
 
-              git clone https://github.com/GoogleCloudPlatform/ruby-docs-samples
-              cd ruby-docs-samples/appengine/hello_world
-              bundle install
-              gcloud app deploy -q --no-promote
-            fi
+  apply_terraform:
+    docker:
+      - image: hashicorp/terraform:latest
+    steps:
+      - attach_workspace:
+          at: /tmp/workspace
+      - checkout
+      - run:  #Set
+          <<: *set-gcp-init-vars
+      - run: 
+          name: Install jq for parsing secrets file in the loadvars task
+          command: apk add -U --no-cache jq
+      - run:  #Load variables
+          <<: *loadvars
+      - run:
+          name: Apply Terraform
+          command: |
+            #Load CIRCLE  environment variables as bash environment variables
+            . "${BASH_ENV}"
+            export TF_VAR_project_id=${GOOGLE_PROJECT_ID}
+            export TF_VAR_environment=${CIRCLE_BRANCH}
+            export TF_VAR_notification_email="$NOTIFICATION_EMAIL"
+            export TF_VAR_cloudsql_db_name="$CLOUDSQL_DB"            
+            export TF_VAR_cloudsql_username="$CLOUDSQL_USERNAME"
+            export TF_VAR_cloudsql_password="$CLOUDSQL_PASSWORD"          
+            cd terraform && terraform init -backend-config="bucket=gcp-terraform-state-${GOOGLE_PROJECT_ID}" && terraform apply -input=false -auto-approve
+ 
+ 
+  deploy-pypostgresql:
+    docker:
+      - image: google/cloud-sdk
+
+    steps:
+      - attach_workspace:
+          at: /tmp/workspace
+      - checkout
+      - run:
+          <<: *set-gcp-init-vars
+      - run:
+          <<: *initgcp-sdk
+      - run: 
+          name: Install jq for parsing secrets file in the loadvars task
+          command: apt-get install jq -y         
+      - run:  #Load decrypted variables
+          <<: *loadvars
       - run:
           name: prepare app engine config, deploy, and run db migrations
           no_output_timeout: 20m
           command: |
+
+            #Load CIRCLE  environment variables as bash environment variables
+            . "${BASH_ENV}" 
+
+            #Set the application name
+            export APP_NAME="pypostgresql"
+
+            #Set the number of intial instances to start to support the application.
             if [ "${CIRCLE_BRANCH}" = "master" ] ; then
-              export RAILS_ENV=production
               export INSTANCES=2
             else
               export RAILS_ENV=${CIRCLE_BRANCH}
               export INSTANCES=1
             fi
-            export PROXY_URL="https://${GOOGLE_PROJECT_ID}.appspot.com/"
+            #export PROXY_URL="https://${GOOGLE_PROJECT_ID}.appspot.com/"
+            export CONNECTION_NAME="${GOOGLE_PROJECT_ID}:us-east1:${CLOUDSQL_DB}"
 
-            # put the tf output into a variable so it doesn't hit the disk
-            export TFOUTPUT=$(gsutil cp gs://gcp-terraform-state-$GOOGLE_PROJECT_ID/tf-output.json -)
-            export SECRET_KEY_BASE=$(echo ${TFOUTPUT} | jq -r .rails_secret.value)
-            export CLOUDSQL_USERNAME=$(echo ${TFOUTPUT} | jq -r .postgres_username.value)
-            export CLOUDSQL_PASSWORD=$(echo ${TFOUTPUT} | jq -r .postgres_password.value)
-            export CONNECTION_NAME=$(echo ${TFOUTPUT} | jq -r .postgres_instance.value)
-            export SIGNATURE_KEY=$(echo ${TFOUTPUT} | jq -r .signature_key.value)
+            #Run the database setup script.
+            #This process is a little involved as we must first setup a SQL proxy and python development environment to run the neccessary scripts.
+            #Note:  This is where you would make any required database modifications 
 
-            # set the google app engine config file up
-            cat <<EOF > rails-example/app.yaml
-            runtime: ruby
+            #Install all prereqs required to run the table create script.
+            echo "Installing prereqs..."
+            pip install -r cloudsql_postgresql/requirements.txt
+            #Setup the Cloud SQL proxy.
+            echo "Setup the sql proxy..."
+            #Set the SQLALCHEMY_DATABASE_URI as required for local connections to the cloud_sql_proxy.
+            export SQLALCHEMY_DATABASE_URI="postgresql+psycopg2://${CLOUDSQL_USERNAME}:${CLOUDSQL_PASSWORD}@127.0.0.1:5432/postgres"            
+            echo $(env | grep -E "^GCLOUD_SERVICE_KEY_${CIRCLE_BRANCH}=" | sed "s/^GCLOUD_SERVICE_KEY_${CIRCLE_BRANCH}=//") > ${HOME}/gcloud-service-key.json
+            #Variable used to authenticate by the google-cloud-logging module
+            export GOOGLE_APPLICATION_CREDENTIALS=${HOME}/gcloud-service-key.json
+            #Download the cloud_sql_proxy binary
+            curl https://dl.google.com/cloudsql/cloud_sql_proxy.linux.amd64 -o ./cloud_sql_proxy
+            chmod 750 ./cloud_sql_proxy
+            ./cloud_sql_proxy -instances=$CONNECTION_NAME=tcp:5432 -credential_file=${HOME}/gcloud-service-key.json & 
+            #Create the tables
+            echo "Running table creation script..."
+            python cloudsql_postgresql/create_tables.py | true 
+            echo "Generating app.yml for application..."
+
+            #Create the app.yml that describes this application.
+            #Pay special notice to the SQLALCHEMY_DATABASE_URI required to allow the Appengine service to connect to the database.
+            cat <<EOF > cloudsql_postgresql/app.yaml
+            runtime: python
             env: flex
-            service: rails
+            service: ${APP_NAME}
             automatic_scaling:
-              min_num_instances: ${INSTANCES}
+              min_num_instances: ${INSTANCES}            
+            entrypoint: gunicorn -b :8080 main:app
 
+            runtime_config:
+              python_version: 3
+
+            #[START gae_flex_postgres_env] 
             env_variables:
-              SECRET_KEY_BASE: "${SECRET_KEY_BASE}"
-              CLOUDSQL_USERNAME: "${CLOUDSQL_USERNAME}"
-              CLOUDSQL_PASSWORD: "${CLOUDSQL_PASSWORD}"
-              CLOUDSQL_INSTANCE: "${CONNECTION_NAME}"
-              SIGNATURE_KEY: "${SIGNATURE_KEY}"
-              RAILS_ENV: "${RAILS_ENV}"
-              BASICAUTH_PASSWORD: "${BASICAUTH_PASSWORD}"
-              BASICAUTH_USER: "${BASICAUTH_USER}"
-              IDP_PROVIDER_URL: "${IDP_PROVIDER_URL}"
-              RAILS_LOG_TO_STDOUT: True
-              RAILS_SERVE_STATIC_FILES: True
-              RAILS_LOG_HEADERS: True
-              PROXY_URL: "${PROXY_URL}"
+                # Replace user, password, database, and instance connection name with the values obtained
+                # when configuring your Cloud SQL instance.
+                SQLALCHEMY_DATABASE_URI: >-
+                  postgresql+psycopg2://${CLOUDSQL_USERNAME}:${CLOUDSQL_PASSWORD}@/postgres?host=/cloudsql/${CONNECTION_NAME}
 
+            #[END gae_flex_postgres_env]
+
+            #[START gae_flex_postgres_settings]
+            # Replace project and instance with the values obtained  when configuring your
+            # Cloud SQL instance.
             beta_settings:
-              cloud_sql_instances: ${CONNECTION_NAME}
+                cloud_sql_instances: "${CONNECTION_NAME}"
+            #[END gae_flex_postgres_settings]
             EOF
-
-            # do the deploy!  Store the version so that we can promote it later.
-            mkdir /tmp/workspace
-            cd rails-example
-            bundle exec bin/rails assets:precompile
-            gcloud app deploy -q --no-promote --format=json > /tmp/railsdeploy.json
-            cat /tmp/railsdeploy.json | jq -r .versions[0].id > /tmp/workspace/rails_target_version
-            export TARGET_VERSION=$(cat /tmp/workspace/rails_target_version)
-
+            
+            #Start the actual deployment process
+            cd cloudsql_postgresql
+            #Deploy app and save output to json file for later parsing
+            gcloud app deploy -q --no-promote --format=json > /tmp/${APP_NAME}.json
+            #Record the application version number and store it 
+            cat /tmp/${APP_NAME}.json | jq -r .versions[0].id > /tmp/workspace/${APP_NAME}_version
+            export TARGET_VERSION=$(cat /tmp/workspace/${APP_NAME}_version)
             # Store signature key and URL so that we can test it later on.
-            echo ${SIGNATURE_KEY} > /tmp/workspace/rails_signature_key
-            echo "https://${TARGET_VERSION}-dot-rails-dot-${GOOGLE_PROJECT_ID}.appspot.com/" > /tmp/workspace/rails_deploy_url
+            echo "https://${TARGET_VERSION}-dot-${APP_NAME}-dot-${GOOGLE_PROJECT_ID}.appspot.com/" > /tmp/workspace/${APP_NAME}_url
 
-            # do db creation/migration here
-            bundle exec rake appengine:exec GAE_SERVICE=rails GAE_VERSION=${TARGET_VERSION} -- bundle exec rake db:create db:migrate
       - persist_to_workspace:
           root: /tmp/workspace
           paths:
-            - rails_target_version
-            - rails_deploy_url
-            - rails_signature_key
-  test-rails:
+            - pypostgresql_version
+            - pypostgresql_url
+
+  test-pypostgresql:
     docker:
-      - image: circleci/ruby:2.5.3-stretch
+      - image: google/cloud-sdk
     steps:
       - checkout
       - attach_workspace:
@@ -206,14 +252,12 @@ jobs:
       - run:
           name: Test the app!
           command: |
-            export SIGNATURE_KEY=$(cat /tmp/workspace/rails_signature_key)
-            export TOKEN="$(cat /proc/sys/kernel/random/uuid)_$(date +%s)"
-            export HASHED_TOKEN=$(echo -n "${SIGNATURE_KEY}_${TOKEN}" | sha256sum | awk '{print $1}')
-            export AUTH_HEADER="ZAP-Authorization"
-            export AUTH_INFO="${HASHED_TOKEN}_${TOKEN}"
+            #Set the application name
+            export APP_NAME="pypostgresql"
+            echo "run tests here against $(cat /tmp/workspace/${APP_NAME}_url) with an ${AUTH_HEADER} header"
 
-            echo "run tests here against $(cat /tmp/workspace/rails_deploy_url) with an ${AUTH_HEADER} header"
-  owaspzap-rails:
+
+  owaspzap-pypostgresql:
     docker:
       - image: owasp/zap2docker-weekly
     steps:
@@ -224,484 +268,86 @@ jobs:
           name: Run OWASP Zap against the app! (fails if the test takes more than 30 minutes)
           no_output_timeout: 30m
           command: |
+            #Set the application name
+            export APP_NAME="pypostgresql"
+
             # if we are in production, do not do form posts, because they can potentially create cruft in the db.
             if [ "${CIRCLE_BRANCH}" = "master" ] ; then
               POSTFORM=false
             else
               POSTFORM=true
             fi
-
-            # send special auth header that lets us scan
-            export SIGNATURE_KEY=$(cat /tmp/workspace/rails_signature_key)
-            export TOKEN="$(cat /proc/sys/kernel/random/uuid)_$(date +%s)"
-            export HASHED_TOKEN=$(echo -n "${SIGNATURE_KEY}_${TOKEN}" | sha256sum | awk '{print $1}')
-            export ZAP_CONFIG=" \
-              -config globalexcludeurl.url_list.url\(0\).regex=.*/robots\.txt.* \
-              -config globalexcludeurl.url_list.url\(0\).description='Exclude robots.txt' \
-              -config globalexcludeurl.url_list.url\(0\).enabled=true \
-              -config replacer.full_list\(0\).description='auth header for app' \
-              -config replacer.full_list\(0\).enabled=true \
-              -config replacer.full_list\(0\).matchtype=REQ_HEADER \
-              -config replacer.full_list\(0\).matchstr=ZAP-Authorization \
-              -config replacer.full_list\(0\).regex=false \
-              -config replacer.full_list\(0\).replacement=${HASHED_TOKEN}_${TOKEN} \
-              -config connection.defaultUserAgent='Mozilla/5.0 (Windows NT 6.3; WOW64; rv:39.0) Gecko/20100101 Firefox/39.0 ZAP/2.7' \
-              -config spider.postform=${POSTFORM} \
-            "
-
-            if zap-full-scan.py -m 5 -z "${ZAP_CONFIG}" -t "$(cat /tmp/workspace/rails_deploy_url)" ; then
-              echo "OWASP ZAP scan found no problems.  Yay!"
-            else
-              echo "XXX run a script or send email to notify Admins that the OWASP ZAP scan found issues here"
-            fi
-  promote-rails:
-    docker:
-      - image: google/cloud-sdk
-    steps:
-      - run:
-          <<: *setupjobvarsandkey
-      - run:
-          <<: *setupcloudsdk
-      - attach_workspace:
-          at: /tmp/workspace
-      - run:
-          name: Promote rails-example with sso to production
-          command: |
-            # promote rails
-            export VERSION=$(cat /tmp/workspace/rails_target_version)
-            gcloud app services set-traffic rails --splits ${VERSION}=1 --quiet
-            echo promoted rails ${VERSION} to "https://rails-dot-${GOOGLE_PROJECT_ID}.appspot.com/"
-      - run:
-          name: Clean up old versions
-          no_output_timeout: 30m
-          command: |
-            # clean up old versions (leave the last two, so you can roll back)
-            VERSIONS=$(gcloud app versions list --service=rails --format=list | sort -rn | tail -n +3 | sed 's/^.*\///') || true
-            if [ ! -z "${VERSIONS}" ] ; then
-              gcloud app versions delete --service=rails ${VERSIONS} --quiet || true
-              echo cleaned up rails ${VERSIONS}
-            else
-              echo no rails versions to clean up
-            fi
-
-  deploy-ssoproxy:
-    docker:
-      - image: google/cloud-sdk
-    steps:
-      - checkout
-      - run:
-          <<: *setupjobvarsandkey
-      - run:
-          <<: *setupcloudsdk
-      - attach_workspace:
-          at: /tmp/workspace
-      - run:
-          name: prepare app engine config, build, deploy
-          no_output_timeout: 30m
-          command: |
-            apt install -y jq
-            git clone https://github.com/pusher/oauth2_proxy
-            cd oauth2_proxy
-
-            # set defaults
-            export COOKIE_DOMAIN="${GOOGLE_PROJECT_ID}.appspot.com"
-            export TARGET_URL="https://${COOKIE_DOMAIN}/"
-            export INSTANCES=1
-            export IDP_CLIENT_ID=$(env | awk -F= "/^IDP_CLIENT_ID_${CIRCLE_BRANCH}=/ {print \$2}")
-
-            # override defaults depending on environment
-            if [ "${CIRCLE_BRANCH}" = "master" ] ; then
-              export INSTANCES=2
-            fi
-
-            # put the tf output into a variable so it doesn't hit the disk
-            export TFOUTPUT=$(gsutil cp gs://gcp-terraform-state-$GOOGLE_PROJECT_ID/tf-output.json -)
-
-            # extract data for the app.yaml file
-            export COOKIE_SECRET=$(echo ${TFOUTPUT} | jq -r .sso_cookie_secret.value)
-            export SIGNATURE_KEY=$(echo ${TFOUTPUT} | jq -r .signature_key.value)
-            export SOURCE="${TARGET_URL}"
-            export DEST="https://rails-dot-${GOOGLE_PROJECT_ID}.appspot.com/"
-            echo ${TFOUTPUT} | jq -r .sso_key.value > jwt_signing_key.pem
-
-            cat <<EOF > app.yaml
-            runtime: custom
-            env: flex
-            service: default
-            automatic_scaling:
-              min_num_instances: ${INSTANCES}
-
-            env_variables:
-              OAUTH2_PROXY_PROVIDER: login.gov
-              OAUTH2_PROXY_HTTP_ADDRESS: 0.0.0.0:8080
-              OAUTH2_PROXY_CLIENT_ID: ${IDP_CLIENT_ID}
-              OAUTH2_PROXY_REDIRECT_URL: ${SOURCE}oauth2/callback
-              OAUTH2_PROXY_OIDC_ISSUER_URL: ${IDP_PROVIDER_URL}
-              OAUTH2_PROXY_EMAIL_DOMAINS: "${IDP_EMAIL_DOMAIN}"
-              OAUTH2_PROXY_UPSTREAMS: ${DEST}
-              OAUTH2_PROXY_PASS_HOST_HEADER: false
-              OAUTH2_PROXY_SET_X_FORWARDED_HOST: true
-              OAUTH2_PROXY_SIGNATURE_KEY: "sha1:${SIGNATURE_KEY}"
-              OAUTH2_PROXY_COOKIE_SECURE: true
-              OAUTH2_PROXY_COOKIE_SECRET: "${COOKIE_SECRET}"
-              OAUTH2_PROXY_COOKIE_DOMAIN: "${COOKIE_DOMAIN}"
-              OAUTH2_PROXY_SKIP_PROVIDER_BUTTON: true
-              OAUTH2_PROXY_PROFILE_URL: "${IDP_PROFILE_URL}"
-              OAUTH2_PROXY_JWT_KEY_FILE: /etc/ssl/private/jwt_signing_key.pem
-              OAUTH2_PROXY_PUBJWK_URL: "${IDP_PUBKEY_URL}"
-              OAUTH2_PROXY_GCP_HEALTHCHECKS: true
-            EOF
-
-            # deploy!
-            gcloud app deploy -q --no-promote --format=json | jq -r .versions[0].id > /tmp/workspace/sso_target_version
-            echo "https://$(cat /tmp/workspace/sso_target_version)-dot-${GOOGLE_PROJECT_ID}.appspot.com/" > /tmp/workspace/sso_deploy_url
-            echo "${TARGET_URL}" > /tmp/workspace/sso_target_url
-      - persist_to_workspace:
-          root: /tmp/workspace
-          paths:
-            - sso_target_version
-            - sso_target_url
-            - sso_deploy_url
-  test-ssoproxy:
-    docker:
-      - image: google/cloud-sdk
-    steps:
-      - checkout
-      - attach_workspace:
-          at: /tmp/workspace
-      - run:
-          name: Run Tests!
-          command: |
-            echo "Need better tests!  Run a testing script here on $(cat /tmp/workspace/sso_deploy_url). XXX"
-            echo sleeping a bit to try to make this test more robust
-            sleep 30
-            echo testing if proxy is alive
-            curl -f $(cat /tmp/workspace/sso_deploy_url)liveness_check | grep OK || exit 1
-            echo testing if proxy is giving back an authorize redirect
-            curl -f $(cat /tmp/workspace/sso_deploy_url) | grep authorize || exit 1
-  promote-ssoproxy:
-    docker:
-      - image: google/cloud-sdk
-    steps:
-      - run:
-          <<: *setupjobvarsandkey
-      - run:
-          <<: *setupcloudsdk
-      - attach_workspace:
-          at: /tmp/workspace
-      - run:
-          name: Promote rails-example with sso to production
-          command: |
-            # promote ssoproxy
-            export VERSION=$(cat /tmp/workspace/sso_target_version)
-            gcloud app services set-traffic default --splits ${VERSION}=1 --quiet
-            echo promoted ${VERSION} to $(cat /tmp/workspace/sso_target_url)
-      - run:
-          name: Clean up old versions
-          no_output_timeout: 30m
-          command: |
-            # clean up old versions (leave the last two, so you can roll back)
-            echo cleaning up old versions
-            VERSIONS=$(gcloud app versions list --service=default --format=list | sort -rn | tail -n +3 | sed 's/^.*\///') || true
-            if [ ! -z "${VERSIONS}" ] ; then
-              gcloud app versions delete ${VERSIONS} --quiet || true
-              echo cleaned up ssoproxy "${VERSIONS}"
-            else
-              echo no ssoproxy versions to clean up
-            fi
-
-  deploy-dotnet:
-    docker:
-      - image: gcr.io/google-appengine/aspnetcore:2.1.0
-    steps:
-      - checkout
-      - run:
-          name: install required software
-          command: |
-            apt-get update
-            apt install -y python python-dev python3 python3-dev python-pip git jq
-      - run:
-          <<: *setupjobvarsandkey
-      - run:
-          <<: *setupcloudsdk-nongoogle
-      - attach_workspace:
-          at: /tmp/workspace
-      - run:
-          name: prepare app engine config, build, deploy
-          no_output_timeout: 30m
-          command: |
-            cd dotnet-example
-
-            if [ "${CIRCLE_BRANCH}" = "master" ] ; then
-              export DEPLOY_ENV=production
-              export INSTANCES=2
-            else
-              export DEPLOY_ENV=${CIRCLE_BRANCH}
-              export INSTANCES=1
-            fi
-
-            # put the tf output into a variable so it doesn't hit the disk
-            export TFOUTPUT=$(gsutil cp gs://gcp-terraform-state-$GOOGLE_PROJECT_ID/tf-output.json -)
-            export CLOUDSQL_USERNAME=$(echo ${TFOUTPUT} | jq -r .postgres_username.value)
-            export CLOUDSQL_PASSWORD=$(echo ${TFOUTPUT} | jq -r .postgres_password.value)
-            export CONNECTION_NAME=$(echo ${TFOUTPUT} | jq -r .postgres_instance.value)
-
-            cat <<EOF > app.yaml
-            runtime: aspnetcore
-            env: flex
-            service: dotnet-example
-            automatic_scaling:
-              min_num_instances: ${INSTANCES}
-
-            env_variables:
-              ASPNETCORE_DEPLOY_ENV: "${DEPLOY_ENV}"
-              ASPNETCORE_BASICAUTH_USER: "${BASICAUTH_USER}"
-              ASPNETCORE_BASICAUTH_PASSWORD: "${BASICAUTH_PASSWORD}"
-              CUSTOMCONNSTR_postgres: Uid=${CLOUDSQL_USERNAME};Pwd=${CLOUDSQL_PASSWORD};Host=cloudsql;Database=dotnet-${DEPLOY_ENV}-visitors
-
-            beta_settings:
-              cloud_sql_instances: ${CONNECTION_NAME}=tcp:5432
-            EOF
-
-            # make sure database exists
-            gcloud sql databases create dotnet-${DEPLOY_ENV}-visitors --instance ${DEPLOY_ENV} || true
-
-            # deploy!  The app will automatically update it's schema.
-            dotnet restore
-            dotnet publish -c Release
-            gcloud app deploy --no-promote ./bin/Release/netcoreapp2.1/publish/app.yaml --format=json | jq -r .versions[0].id > /tmp/workspace/dotnet_target_version
-            echo "https://$(cat /tmp/workspace/dotnet_target_version)-dot-dotnet-example-${GOOGLE_PROJECT_ID}.appspot.com/" > /tmp/workspace/dotnet_deploy_url
-            echo "https://dotnet-example-dot-${GOOGLE_PROJECT_ID}.appspot.com/" > /tmp/workspace/dotnet_target_url
-      - persist_to_workspace:
-          root: /tmp/workspace
-          paths:
-            - dotnet_target_version
-            - dotnet_target_url
-            - dotnet_deploy_url
-  test-dotnet:
-    docker:
-      - image: google/cloud-sdk
-    steps:
-      - checkout
-      - attach_workspace:
-          at: /tmp/workspace
-      - run:
-          name: Run Tests!
-          command: echo "not tested! Run a testing script here on $(cat /tmp/workspace/dotnet_deploy_url). XXX"
-  owaspzap-dotnet:
-    docker:
-      - image: owasp/zap2docker-weekly
-    steps:
-      - checkout
-      - attach_workspace:
-          at: /tmp/workspace
-      - run:
-          name: Run OWASP Zap against the app! (fails if the test takes more than 30 minutes)
-          no_output_timeout: 30m
-          command: |
-            # if we are in production, do not do form posts, because they can potentially create cruft in the db.
-            if [ "${CIRCLE_BRANCH}" = "master" ] ; then
-              POSTFORM=false
-            else
-              POSTFORM=true
-            fi
-
             export ZAP_CONFIG=" \
               -config globalexcludeurl.url_list.url\(0\).regex='.*/robots\.txt.*' \
               -config globalexcludeurl.url_list.url\(0\).description='Exclude robots.txt' \
               -config globalexcludeurl.url_list.url\(0\).enabled=true \
               -config spider.postform=${POSTFORM}"
-
-            if zap-full-scan.py -m 5 -z "${ZAP_CONFIG}" -t "$(cat  /tmp/workspace/dotnet_deploy_url)" ; then
+            if zap-full-scan.py -m 5 -z "${ZAP_CONFIG}" -t "$(cat  /tmp/workspace/${APP_NAME}_url)" ; then
               echo "OWASP ZAP scan found no problems.  Yay!"
             else
               echo "XXX run a script or send email to notify Admins that the OWASP ZAP scan found issues here"
             fi
-  promote-dotnet:
+
+
+  promote-pypostgresql:
     docker:
       - image: google/cloud-sdk
+        environment:
+          APP_NAME: pypostgresql      
     steps:
       - run:
-          <<: *setupjobvarsandkey
+          <<: *set-gcp-init-vars
       - run:
-          <<: *setupcloudsdk
+          <<: *initgcp-sdk
       - attach_workspace:
           at: /tmp/workspace
       - run:
-          name: Promote dotnet-example to production
+          name: Promote ${APP_NAME}
           command: |
-            # promote dotnet
-            export VERSION=$(cat /tmp/workspace/dotnet_target_version)
-            gcloud app services set-traffic dotnet-example --splits ${VERSION}=1 --quiet
-            echo promoted dotnet ${VERSION} to $(cat /tmp/workspace/dotnet_target_url)
+            # promote application
+            export VERSION=$(cat /tmp/workspace/${APP_NAME}_version)
+            gcloud app services set-traffic ${APP_NAME} --splits ${VERSION}=1 --quiet
+            echo promoted ${APP_NAME} ${VERSION} to "https://${APP_NAME}-${GOOGLE_PROJECT_ID}.appspot.com/"
       - run:
           name: Clean up old versions
           no_output_timeout: 30m
           command: |
             # clean up old versions (leave the last two, so you can roll back)
-            echo cleaning up old versions
-            VERSIONS=$(gcloud app versions list --service=dotnet-example --format=list | sort -rn | tail -n +3 | sed 's/^.*\///') || true
+            VERSIONS=$(gcloud app versions list --service=${APP_NAME} --format=list | sort -rn | tail -n +3 | sed 's/^.*\///') || true
             if [ ! -z "${VERSIONS}" ] ; then
-              gcloud app versions delete ${VERSIONS} --quiet || true
-              echo cleaned up dotnet "${VERSIONS}"
+              gcloud app versions delete --service=${APP_NAME} ${VERSIONS} --quiet || true
+              echo cleaned up ${APP_NAME} ${VERSIONS}
             else
-              echo no dotnet versions to clean up
-            fi
-
-  deploy-log-sync:
-    docker:
-      - image: google/cloud-sdk
-    steps:
-      - checkout
-      - run:
-          <<: *setupjobvarsandkey
-      - run:
-          <<: *setupcloudsdk
-      - run:
-          name: prepare app engine config, build, deploy
-          no_output_timeout: 30m
-          command: |
-            # if LOGTO is set, then we are assuming that we are shipping logs
-            # to GSA IT Security (or whoever) for event correlation/auditing.
-            if [ -z "${LOGTO}" ] ; then
-              echo LOGTO not set, not launching security-logging service
-              echo attempting to clean up logsync job
-              gcloud -q beta scheduler jobs delete logsync-${CIRCLE_BRANCH} || true
-              exit 0
-            fi
-
-            if [ "${CIRCLE_BRANCH}" = "master" ] ; then
-              TARGET_ENV="production"
-            else
-              TARGET_ENV="${CIRCLE_BRANCH}"
-            fi
-            apt install -y jq
-            cd security-logging
-
-            # extract data for the app.yaml file
-            export TFOUTPUT=$(gsutil cp gs://gcp-terraform-state-$GOOGLE_PROJECT_ID/tf-output.json -)
-            export LOGFROM=$(echo ${TFOUTPUT} | jq -r .logs_bucket.value)
-            export AUTH_HEADER="GCS-Authorization"
-            export AUTH_INFO="$(cat /proc/sys/kernel/random/uuid)_$(date +%s)"
-            export TARGET_URL="https://${CIRCLE_BRANCH}-dot-logsync-dot-${GOOGLE_PROJECT_ID}.appspot.com/"
-
-            cat <<EOF > app.yaml
-            runtime: custom
-            env: flex
-            service: logsync
-            automatic_scaling:
-              min_num_instances: 1
-
-            env_variables:
-              FROM: ${LOGFROM}
-              TO: ${LOGTO}/${CIRCLE_BRANCH}
-              AWS_ACCESS_KEY_ID: ${LOGTO_AWS_ACCESS_KEY_ID}
-              AWS_SECRET_ACCESS_KEY: ${LOGTO_AWS_SECRET_ACCESS_KEY}
-              AUTH_INFO: ${AUTH_INFO}
-            EOF
-
-            # deploy!
-            gcloud app deploy -q
-
-            # deploy the scheduled task that makes the logsync happen
-            # You must delete a job before creating it.
-            gcloud -q beta scheduler jobs delete logsync-${CIRCLE_BRANCH} || true
-            gcloud beta scheduler jobs create http logsync-${CIRCLE_BRANCH} --http-method=GET --schedule 'every 5 minutes' --uri="${TARGET_URL}" --headers ${AUTH_HEADER}="${AUTH_INFO}"
-      - run:
-          name: Clean up old versions
-          no_output_timeout: 30m
-          command: |
-            # clean up old versions (leave the last two, so you can roll back)
-            echo cleaning up old versions
-            VERSIONS=$(gcloud app versions list --service=logsync --format=list | sort -rn | tail -n +3 | sed 's/^.*\///') || true
-            if [ ! -z "${VERSIONS}" ] ; then
-              gcloud app versions delete ${VERSIONS} --quiet || true
-              echo cleaned up logsync "${VERSIONS}"
-            else
-              echo no logsync versions to clean up
-            fi
-  owaspzap-log-sync:
-    docker:
-      - image: owasp/zap2docker-weekly
-    steps:
-      - checkout
-      - run:
-          name: Run OWASP Zap against the app! (fails if the test takes more than 30 minutes)
-          no_output_timeout: 30m
-          command: |
-            # if LOGTO is set, then we are assuming that we are shipping logs
-            # to GSA IT Security (or whoever) for event correlation/auditing.
-            if [ -z "${LOGTO}" ] ; then
-              echo LOGTO not set, not scanning security-logging service
-              exit 0
-            fi
-
-            export TARGET_URL="https://${CIRCLE_BRANCH}-dot-logsync-dot-${GOOGLE_PROJECT_ID}.appspot.com/"
-
-            export ZAP_CONFIG=" \
-              -config globalexcludeurl.url_list.url\(0\).regex='.*/robots\.txt.*' \
-              -config globalexcludeurl.url_list.url\(0\).description='Exclude robots.txt' \
-              -config globalexcludeurl.url_list.url\(0\).enabled=true \
-              "
-
-            if zap-full-scan.py -m 5 -z "${ZAP_CONFIG}" -t "${TARGET_URL}" ; then
-              echo "OWASP ZAP scan found no problems.  Yay!"
-            else
-              echo "XXX run a script or send email to notify Admins that the OWASP ZAP scan found issues here"
+              echo no ${APP_NAME} versions to clean up
             fi
 
 
-# These are the workflows that define what circleci actually does.
+#These are the workflows that define what CircleCI actually does.
 workflows:
   version: 2
-  terraform:
+  build_and_deploy:
     jobs:
-      - init_terraform_state:
+      - gcp_setup:
           filters:
             branches:
               only:
                 # This is the list of branches which will trigger a terraform run.
                 - master
                 - staging
-                - dev
+                - dev      
+      - init_terraform_state:
+          requires:
+            - gcp_setup          
       - plan_terraform:
           requires:
             - init_terraform_state
-      - hold_terraform:
-          type: approval
-          requires:
-            - plan_terraform
       - apply_terraform:
           requires:
-            - hold_terraform
-      - store_tf_output:
+            - plan_terraform
+      #Python Cloud SQL app jobs
+      - deploy-pypostgresql:
           requires:
-            - apply_terraform
-  deploy-rails-example:
-    jobs:
-      - deploy-rails:
-          filters:
-            branches:
-              only:
-                # This is the list of branches which will be deployed automatically.
-                # Add more branches here if you want them automatically deployed.
-                # Their RAILS_ENV will get set to the branch name, or "production",
-                # if the branch is "master".
-                - master
-                - staging
-                - dev
-      - test-rails:
-          requires:
-            - deploy-rails
-      - owaspzap-rails:
-          requires:
-            - deploy-rails
-      - promote-rails:
-          requires:
-            - test-rails
-  deploy-ssoproxy-example:
-    jobs:
-      - deploy-ssoproxy:
+            - apply_terraform    
           filters:
             branches:
               only:
@@ -709,44 +355,13 @@ workflows:
                 # Add more branches here if you want them automatically deployed.
                 - master
                 - staging
-                - dev
-      - test-ssoproxy:
+                - dev      
+      - test-pypostgresql:
           requires:
-            - deploy-ssoproxy
-      - promote-ssoproxy:
+            - deploy-pypostgresql  
+      - owaspzap-pypostgresql:
           requires:
-            - test-ssoproxy
-  deploy-dotnet-example:
-    jobs:
-      - deploy-dotnet:
-          filters:
-            branches:
-              only:
-                # This is the list of branches which will be deployed automatically.
-                # Add more branches here if you want them automatically deployed.
-                - master
-                - staging
-                - dev
-      - test-dotnet:
+            - test-pypostgresql  
+      - promote-pypostgresql:
           requires:
-            - deploy-dotnet
-      - owaspzap-dotnet:
-          requires:
-            - deploy-dotnet
-      - promote-dotnet:
-          requires:
-            - test-dotnet
-  # deploy-log-sync:
-  #   jobs:
-  #     - deploy-log-sync:
-  #         filters:
-  #           branches:
-  #             only:
-  #               # This is the list of branches which will be deployed automatically.
-  #               # Add more branches here if you want them automatically deployed.
-  #               - master
-  #               - staging
-  #               - dev
-  #     - owaspzap-log-sync:
-  #         requires:
-  #           - deploy-log-sync
+            - owaspzap-pypostgresql    

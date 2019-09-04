@@ -1,6 +1,6 @@
 // Production Postgres Database
 resource "google_sql_database_instance" "postgres" {
-  name = "postgres"
+  name = "pypostgresql"
   database_version = "POSTGRES_9_6"
   region = "${var.region}"
 
@@ -11,16 +11,16 @@ resource "google_sql_database_instance" "postgres" {
       enabled = true
       start_time = "05:00"
     }
+    maintenance_window {
+      day = "6"
+      hour = "2" #UTC = EST + 4
+      update_track = "stable"
+    }
   }
 }
 
-resource "random_string" "postgres_password" {
-  length  = 24
-  special = false
-}
-
 resource "google_sql_user" "postgres" {
-  name     = "postgres"
-  password = "${random_string.postgres_password.result}"
+  name     = "${var.cloudsql_username}"
+  password = "${var.cloudsql_password}"
   instance = "${google_sql_database_instance.postgres.name}"
 }
