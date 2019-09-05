@@ -327,7 +327,7 @@ workflows:
   version: 2
   build_and_deploy:
     jobs:
-      - gcp_setup:
+      - gcp_setup
       - init_terraform_state:
           requires:
             - gcp_setup          
