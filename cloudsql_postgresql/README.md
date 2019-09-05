@@ -22,7 +22,7 @@ Project contents
 | app.yaml   |   Example App Engine yaml file.  This is JUST and example.  The real app.yml is completely written using CircleCi in the .circleci folder in the parent directory  |
 | create_tables.py |  Script that creates the required tables.  Requires  |
 | main_test.py |  Create tables and launches a client test against localhost  |
-| main.py     |  The main application file.  It is a simple Flask / SQLAlchemy application that reads/writes to a database. |
+| main.py     |  The main application file.  It is a simple Flask / SQLAlchemy application that reads/writes to a database.  This also contains the Stackdriver Logging code. |
 
 
 Setup
