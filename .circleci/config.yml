@@ -175,7 +175,7 @@ jobs:
 
             #Run the database setup script.
             #This process is a little involved as we must first setup a SQL proxy and python development environment to run the neccessary scripts.
-            #Note:  This is where you would make any required database modifications 
+            #Note:  This is where you would make any required database modifications.
 
             #Install all prereqs required to run the table create script.
             echo "Installing prereqs..."
@@ -327,14 +327,7 @@ workflows:
   version: 2
   build_and_deploy:
     jobs:
-      - gcp_setup:
-          filters:
-            branches:
-              only:
-                # This is the list of branches which will trigger a terraform run.
-                - master
-                - staging
-                - dev      
+      - gcp_setup
       - init_terraform_state:
           requires:
             - gcp_setup          
@@ -342,6 +335,11 @@ workflows:
           requires:
             - init_terraform_state
       - apply_terraform:
+          filters:
+            branches:
+              only:
+                # This is the list of branches which will trigger a terraform run.
+                - master    
           requires:
             - plan_terraform
       #Python Cloud SQL app jobs
@@ -354,8 +352,6 @@ workflows:
                 # This is the list of branches which will be deployed automatically.
                 # Add more branches here if you want them automatically deployed.
                 - master
-                - staging
-                - dev      
       - test-pypostgresql:
           requires:
             - deploy-pypostgresql  
