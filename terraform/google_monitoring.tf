@@ -9,6 +9,43 @@ resource "google_monitoring_notification_channel" "email" {
 }
 
 
+
+resource "google_logging_metric" "firewall_change" {
+  name = "firewall_change"
+  filter = "logName:\"projects/i-ise-04302019-playground/logs/cloudaudit.googleapis.com%2Factivity\" AND protoPayload.methodName:\"google.appengine.v1.Firewall.\"   "
+  metric_descriptor {
+    metric_kind = "DELTA"
+    value_type = "INT64"
+  }
+}
+
+resource "google_monitoring_alert_policy" "firewall_change"{
+  display_name = "firewall_change"
+  combiner= "OR"
+  conditions {
+      display_name = "firewall_change"
+      condition_threshold {
+        aggregations {
+          alignment_period = "60s"
+          per_series_aligner = "ALIGN_SUM"
+        }
+        comparison = "COMPARISON_GT"
+        duration = "60s"
+        filter = "metric.type=\"logging.googleapis.com/user/${google_logging_metric.firewall_change.name}\" AND resource.type=\"global\""
+        threshold_value = 0
+        trigger {
+          count = 1
+        }
+      }
+  }
+  documentation {
+    content = "# Warning - CIS Alert Triggered\n\n# Error message:\n\nfirewall_change triggered."
+    mime_type = "text/markdown"
+  }
+}
+
+
+
 #CIS 2.4 Ensure log metric filter and alerts exists for Project Ownership assignments/changes
 
 resource "google_logging_metric" "cis2_4_project_owner_change" {

@@ -339,11 +339,18 @@ workflows:
             branches:
               only:
                 # This is the list of branches which will trigger a terraform run.
-                - master    
+                - master  
+                - dev 
+                - test
           requires:
             - plan_terraform
       #Python Cloud SQL app jobs
       - deploy-pypostgresql:
+          filters:
+            branches:
+              only:
+                # This is the list of branches which will trigger a terraform run.
+                - master      
           requires:
             - apply_terraform    
       - test-pypostgresql:
