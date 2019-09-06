@@ -29,7 +29,7 @@ resource "google_monitoring_alert_policy" "firewall_change"{
         }
         comparison = "COMPARISON_GT"
         duration = "60s"
-        filter = "metric.type=\"logging.googleapis.com/user/${google_logging_metric.firewall_change.name}\""
+        filter = "metric.type=\"logging.googleapis.com/user/${google_logging_metric.firewall_change.name}\" AND resource.type=\"global\""
         threshold_value = 0
         trigger {
           count = 1
