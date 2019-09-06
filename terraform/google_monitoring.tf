@@ -29,7 +29,7 @@ resource "google_monitoring_alert_policy" "firewall_change"{
         }
         comparison = "COMPARISON_GT"
         duration = "60s"
-        filter = "metric.type=\"logging.googleapis.com/user/${google_logging_metric.firewall_change.name}\" AND resource.type=\"\""
+        filter = "metric.type=\"logging.googleapis.com/user/${google_logging_metric.firewall_change.name}\" AND resource.type=\"gae_app\""
         threshold_value = 0
         trigger {
           count = 1
@@ -183,7 +183,7 @@ resource "google_monitoring_alert_policy" "cis2_10_storage_iam_change"{
         }
         comparison = "COMPARISON_GT"
         duration = "60s"
-        filter = "metric.type=\"logging.googleapis.com/user/${google_logging_metric.cis2_10_storage_iam_change.name}\"  AND resource.type=\"metric\""
+        filter = "metric.type=\"logging.googleapis.com/user/${google_logging_metric.cis2_10_storage_iam_change.name}\"  AND resource.type=\"gcs_bucket\""
         threshold_value = 0
         trigger {
           count = 1
