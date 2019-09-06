@@ -8,11 +8,9 @@ resource "google_monitoring_notification_channel" "email" {
   }
 }
 
-
-
 resource "google_logging_metric" "firewall_change" {
-  name = "firewall_change"
-  filter = "logName:\"projects/i-ise-04302019-playground/logs/cloudaudit.googleapis.com%2Factivity\" AND protoPayload.methodName:\"google.appengine.v1.Firewall.\"   "
+  name = "firewall-change"
+  filter = "logName:\"projects/i-ise-04302019-playground/logs/cloudaudit.googleapis.com%2Factivity\" AND protoPayload.methodName:\"google.appengine.v1.Firewall.\""
   metric_descriptor {
     metric_kind = "DELTA"
     value_type = "INT64"
@@ -20,10 +18,10 @@ resource "google_logging_metric" "firewall_change" {
 }
 
 resource "google_monitoring_alert_policy" "firewall_change"{
-  display_name = "firewall_change"
+  display_name = "firewall-change"
   combiner= "OR"
   conditions {
-      display_name = "firewall_change"
+      display_name = "firewall-change"
       condition_threshold {
         aggregations {
           alignment_period = "60s"
@@ -31,7 +29,7 @@ resource "google_monitoring_alert_policy" "firewall_change"{
         }
         comparison = "COMPARISON_GT"
         duration = "60s"
-        filter = "metric.type=\"logging.googleapis.com/user/${google_logging_metric.firewall_change.name}\" AND resource.type=\"global\""
+        filter = "metric.type=\"logging.googleapis.com/user/${google_logging_metric.firewall_change.name}\" AND resource.type=\"gae_app\""
         threshold_value = 0
         trigger {
           count = 1
@@ -39,11 +37,10 @@ resource "google_monitoring_alert_policy" "firewall_change"{
       }
   }
   documentation {
-    content = "# Warning - CIS Alert Triggered\n\n# Error message:\n\nfirewall_change triggered."
+    content = "# Warning - CIS Alert Triggered\n\n# Error message:\n\nfirewall-change triggered."
     mime_type = "text/markdown"
   }
 }
-
 
 
 #CIS 2.4 Ensure log metric filter and alerts exists for Project Ownership assignments/changes
@@ -69,7 +66,7 @@ resource "google_monitoring_alert_policy" "cis2_4_project_owner_change"{
         }
         comparison = "COMPARISON_GT"
         duration = "60s"
-        filter = "metric.type=\"logging.googleapis.com/user/${google_logging_metric.cis2_4_project_owner_change.name}\" AND resource.type=\"global\""
+        filter = "metric.type=\"logging.googleapis.com/user/${google_logging_metric.cis2_4_project_owner_change.name}\" AND resource.type=\"project\""
         threshold_value = 0
         trigger {
           count = 1
@@ -144,7 +141,7 @@ resource "google_monitoring_alert_policy" "cis2_6_custom_role_change"{
         }
         comparison = "COMPARISON_GT"
         duration = "60s"
-        filter = "metric.type=\"logging.googleapis.com/user/${google_logging_metric.cis2_6_custom_role_change.name}\" AND resource.type=\"global\""
+        filter = "metric.type=\"logging.googleapis.com/user/${google_logging_metric.cis2_6_custom_role_change.name}\" AND resource.type=\"iam_role\""
         threshold_value = 0
         trigger {
           count = 1
@@ -182,7 +179,7 @@ resource "google_monitoring_alert_policy" "cis2_10_storage_iam_change"{
         }
         comparison = "COMPARISON_GT"
         duration = "60s"
-        filter = "metric.type=\"logging.googleapis.com/user/${google_logging_metric.cis2_10_storage_iam_change.name}\" AND resource.type=\"global\""
+        filter = "metric.type=\"logging.googleapis.com/user/${google_logging_metric.cis2_10_storage_iam_change.name}\" AND resource.type=\"gcs_bucket\""
         threshold_value = 0
         trigger {
           count = 1
@@ -219,7 +216,7 @@ resource "google_monitoring_alert_policy" "cis2_11_sql_instance_change"{
         }
         comparison = "COMPARISON_GT"
         duration = "60s"
-        filter = "metric.type=\"logging.googleapis.com/user/${google_logging_metric.cis2_11_sql_instance_change.name}\" AND resource.type=\"global\""
+        filter = "metric.type=\"logging.googleapis.com/user/${google_logging_metric.cis2_11_sql_instance_change.name}\" AND resource.type=\"cloudsql_database\""
         threshold_value = 0
         trigger {
           count = 1
