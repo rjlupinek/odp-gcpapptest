@@ -36,6 +36,7 @@ resource "google_monitoring_alert_policy" "firewall_change"{
         }
       }
   }
+  notification_channels = [ "${google_monitoring_notification_channel.email.name}" ]  
   documentation {
     content = "# Warning - CIS Alert Triggered\n\n# Error message:\n\nfirewall-change triggered."
     mime_type = "text/markdown"
@@ -73,6 +74,7 @@ resource "google_monitoring_alert_policy" "cis2_4_project_owner_change"{
         }
       }
   }
+  notification_channels = [ "${google_monitoring_notification_channel.email.name}" ]  
   documentation {
     content = "# Warning - CIS Alert Triggered\n\n# Error message:\n\nCIS 2.4 Ensure log metric filter and alerts exists for Project Ownership assignments/changes triggered."
     mime_type = "text/markdown"
@@ -110,6 +112,7 @@ resource "google_monitoring_alert_policy" "cis2_5_audit_config_change"{
         }
       }
   }
+  notification_channels = [ "${google_monitoring_notification_channel.email.name}" ]  
   documentation {
     content = "# Warning - CIS Alert Triggered\n\n# Error message:\n\nCIS 2.5 Ensure log metric filter and alerts exists for Audit Configuration - has triggered."
     mime_type = "text/markdown"
@@ -148,6 +151,7 @@ resource "google_monitoring_alert_policy" "cis2_6_custom_role_change"{
         }
       }
   }
+  notification_channels = [ "${google_monitoring_notification_channel.email.name}" ]
   documentation {
     content = "# Warning - CIS Alert Triggered\n\n# Error message:\n\nCIS 2.6 Ensure log metric filter and alerts exists for Custom Role changes has triggered."
     mime_type = "text/markdown"
@@ -186,6 +190,7 @@ resource "google_monitoring_alert_policy" "cis2_10_storage_iam_change"{
         }
       }
   }
+  notification_channels = [ "${google_monitoring_notification_channel.email.name}" ]  
   documentation {
     content = "# Warning - CIS Alert Triggered\n\n# Error message:\n\nCIS 2.10 - Ensure log metric filter and alerts exists for Cloud Storage IAM permission changes - has triggered."
     mime_type = "text/markdown"
@@ -223,6 +228,7 @@ resource "google_monitoring_alert_policy" "cis2_11_sql_instance_change"{
         }
       }
   }
+  notification_channels = [ "${google_monitoring_notification_channel.email.name}" ]  
   documentation {
     content = "# Warning - CIS Alert Triggered\n\n# Error message:\n\nCIS 2.11 - Ensure log metric filter and alerts exists for SQL instance configuration changes - has triggered."
     mime_type = "text/markdown"
