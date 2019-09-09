@@ -111,6 +111,9 @@ jobs:
           <<: *set-gcp-init-vars
       - run:
           <<: *initgcp-sdk
+      - run: 
+          name: Install jq for parsing secrets file in the loadvars task
+          command: apt-get install jq -y              
       - run:
           name: prepare app engine config, deploy, and run db migrations
           no_output_timeout: 20m
