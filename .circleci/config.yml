@@ -38,32 +38,6 @@ jobs:
           command: |
             gcloud auth activate-service-account --key-file ${HOME}/gcloud-service-key.json
             gcloud config set project $GOOGLE_PROJECT_ID
-      - run: &getvars #Pull the secrets file for this project and decrypt it.
-          name: Download and decrypt secrets file
-          command: |
-            cd gcp_setup_secrets/
-            mkdir /tmp/workspace || true
-            ./gcp_setup_secrets.sh --project-id=$GOOGLE_PROJECT_ID --environment=${CIRCLE_BRANCH} --secrets-file=/tmp/workspace/vars.json --decrypt=true
-      - run: 
-          name: Install jq for parsing secrets file in the loadvars task
-          command: apt-get install jq -y                
-      - run: &loadvars #Load the secrets file as environment variables.
-          name: Load secrets into environment variables
-          command: |
-            OLDIFS="$IFS"
-            IFS=$'\n'
-            export SECRETS_FILE="/tmp/workspace/vars.json"
-            for env_var in $(jq 'to_entries|map("\(.key)='"'"'\(.value|tostring)'"'"'")|.[]' $SECRETS_FILE | sed -e 's/^"//' -e 's/"$//' )
-            do
-              echo "export $env_var" >> $BASH_ENV
-              export $env_var
-            done  
-            IFS="$OLDIFS"
-            . "${BASH_ENV}"
-      - persist_to_workspace:  #Save the decrypted secrets to vars.json and persist between jobs
-          root: /tmp/workspace
-          paths: 
-            - vars.json
 
   init_terraform_state:
     docker:
@@ -89,11 +63,6 @@ jobs:
       - checkout
       - run:
           <<: *set-gcp-init-vars
-      - run: 
-          name: Install jq for parsing secrets file
-          command: apk add -U --no-cache jq
-      - run:  #Load variables
-          <<: *loadvars
       - run:
           name: Initialize and plan Terraform (check plan out here before approving!)
           command: |
@@ -102,9 +71,9 @@ jobs:
             export TF_VAR_project_id=${GOOGLE_PROJECT_ID}
             export TF_VAR_environment=${CIRCLE_BRANCH}
             export TF_VAR_notification_email="$NOTIFICATION_EMAIL"            
-            export TF_VAR_cloudsql_db_name="$CLOUDSQL_DB"
-            export TF_VAR_cloudsql_username="$CLOUDSQL_USERNAME"
-            export TF_VAR_cloudsql_password="$CLOUDSQL_PASSWORD"
+            export TF_VAR_cloudsql_db_name="${CLOUDSQL_DB}"
+            export TF_VAR_cloudsql_username="${CLOUDSQL_USERNAME}"
+            export TF_VAR_cloudsql_password="${CLOUDSQL_PASSWORD}"
             cd terraform && terraform init -backend-config="bucket=gcp-terraform-state-${GOOGLE_PROJECT_ID}" && terraform plan -input=false
 
   apply_terraform:
@@ -116,11 +85,6 @@ jobs:
       - checkout
       - run:  #Set
           <<: *set-gcp-init-vars
-      - run: 
-          name: Install jq for parsing secrets file in the loadvars task
-          command: apk add -U --no-cache jq
-      - run:  #Load variables
-          <<: *loadvars
       - run:
           name: Apply Terraform
           command: |
@@ -129,9 +93,9 @@ jobs:
             export TF_VAR_project_id=${GOOGLE_PROJECT_ID}
             export TF_VAR_environment=${CIRCLE_BRANCH}
             export TF_VAR_notification_email="$NOTIFICATION_EMAIL"
-            export TF_VAR_cloudsql_db_name="$CLOUDSQL_DB"            
-            export TF_VAR_cloudsql_username="$CLOUDSQL_USERNAME"
-            export TF_VAR_cloudsql_password="$CLOUDSQL_PASSWORD"          
+            export TF_VAR_cloudsql_db_name="${CLOUDSQL_DB}"            
+            export TF_VAR_cloudsql_username="${CLOUDSQL_USERNAME}"
+            export TF_VAR_cloudsql_password="${CLOUDSQL_PASSWORD}"          
             cd terraform && terraform init -backend-config="bucket=gcp-terraform-state-${GOOGLE_PROJECT_ID}" && terraform apply -input=false -auto-approve
  
  
@@ -147,11 +111,6 @@ jobs:
           <<: *set-gcp-init-vars
       - run:
           <<: *initgcp-sdk
-      - run: 
-          name: Install jq for parsing secrets file in the loadvars task
-          command: apt-get install jq -y         
-      - run:  #Load decrypted variables
-          <<: *loadvars
       - run:
           name: prepare app engine config, deploy, and run db migrations
           no_output_timeout: 20m
@@ -351,6 +310,7 @@ workflows:
               only:
                 # This is the list of branches which will trigger a terraform run.
                 - master      
+                - dev
           requires:
             - apply_terraform    
       - test-pypostgresql:
