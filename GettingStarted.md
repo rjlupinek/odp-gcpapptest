@@ -37,17 +37,17 @@ Initial GCP project setup requires interfacing with the GSA ICE team as they wil
 The application team will be responsible submitting a service now ticket for the following configurations:
 
 * Pilot project request
-   * Request a pilot project when you are first setting up your project in GCP and need to work through 
-   * Specific team members will receive project ownership privileges 
-   * This service request will generate ticket that is sent to the ICE / GCAP team 
-   * Three separate GCP Projects will be created with the same groups and permissions applied
+   * Request a pilot project when you are first setting up your project in GCP and need to work through permissions and API requirements.
+   * Specific team members will receive project ownership privileges. 
+   * This service request will generate ticket that is sent to the ICE / GCAP team.
+   * Three separate GCP Projects will be created with the same groups and permissions applied.
 * Dev, Test, Prod projects request
-   * Request these projects to be setup when you are ready to deploy your application in production
-   * This service request will generate ticket that is sent to the ICE / GCAP team 
-   * Three separate GCP Projects will be created with the same groups and permissions applied
-   * Your team will not receive project ownership privileges
-   * Specific team members will receive the priveleges required to deploy this template application into App Engine
-   * Additional privilege changes must be provided in separate service requests
+   * Request these projects to be setup when you are ready to deploy your application in production.
+   * This service request will generate ticket that is sent to the ICE / GCAP team. 
+   * Three separate GCP Projects will be created with the same groups and permissions applied.
+   * Your team will not receive project ownership privileges.
+   * Specific team members will receive the priveleges required to deploy this template application into App Engine.
+   * Additional privilege changes must be provided in separate service requests.
 
  
 
