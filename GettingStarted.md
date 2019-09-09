@@ -49,7 +49,7 @@ The application team will be responsible submitting a service now ticket for the
    * Specific team members will receive the priveleges required to deploy this template application into App Engine
    * Additional privilege changes must be provided in separate service requests
 
-
+ 
 
 ## Github <a name="s3"></a>
 
@@ -67,7 +67,8 @@ GitHub provides it's users with built in dependency scanning.
  
 To enable dependecy scanning click your GitHub repo's gear icon to enter settings and enable these three options:
 
-![dependency](doc_img/dependency_scan.PNG){:height="50%" width="50%"}
+   <img src="doc_img/dependency_scan.PNG" width="50%">
+
             
 ## Terraform - Infrastructure as Code <a name="s3.1"></a>
 
@@ -92,7 +93,8 @@ In this section we describe the process required to configure CircleCI.
 
 #### Add GitHub project to CircleCI
  
-![dependency](doc_img/dependency_scan.PNG)
+   Once you are logged into CircleCI with your Github account you should see all of 
+
 
 ### Setup Environment Variables and Secrets
 
@@ -105,18 +107,21 @@ The next few sections will describe the data and variables require to successful
    * From GCP Console select IAM & Admin service.
    * Select Service Accounts
 
-![service_account](doc_img/service_account.PNG){:height="50%" width="50%"}
+      <img src="doc_img/service_account.PNG" width="25%">
+
    * Select the `terraform@<PROJECT_ID>` service account, click the three dots besides the account name and finally `Create key`.
 
-![create_key](doc_img/create_key.PNG){:height="50%" width="50%"}
+      <img src="doc_img/create_key.PNG" width="10%">
+
    * Accept the defaults creating an Access key file in JSON format.
 
-![defaults](doc_img/defaults_key.PNG){:height="50%" width="50%"}
+      <img src="doc_img/defaults_key.PNG" width="50%">
+
    * Download and open the JSON file as you will the contents to populate the `GCLOUD_SERVICE_KEY_<BRANCH>` described in the next section with the complete contents of this file.
 
 #### Variable List
 
-Below is the list of variables that you need to configure 
+Below is the list of variables required to successfully deploy your project.
 
 * Note: For variable with `<BRANCH>` suffix replace this with the GitHub repo branch you wish to tie to your GCP Project ID.   
 * Note: All variables are of the type `string`.
@@ -133,13 +138,12 @@ Below is the list of variables that you need to configure
 #### How to configure CircleCI Environment variables
 
 * To configure environment variables you must first access your project's then select Environement Variables under Build Settings.
+ 
+   <img src="doc_img/env_var_1.PNG" width="25%">
 
-![dependency](doc_img/env_var_1.PNG){:height="50%" width="50%"}
 * You will then need to click the Add Variable button to add the environment variables you require for your project.
 
-![dependency](doc_img/env_var_2.PNG){:height="50%" width="50%"}
-<img src="doc_img/env_var_2.PNG" width="50%">
-
+   <img src="doc_img/env_var_2.PNG" width="25%">
 
 
 ### Deploy from Circle
@@ -160,29 +164,8 @@ Enable through GUI
 
 
 
-## Configure Terraform
 
-There are several variables you will want to configure for 
 
-1. Consider your application load on the database and change the
-   parameters in `terraform/google_sql.tf` to size your databases
-   properly.  The default `db-f1-micro` db size is probably not sufficient
-   for most production systems.
-
-   For each project, do the following:
-   1. Get GSA ICE to enable all of the APIs and roles you need for your GCP
-      Project.  They should be able to check this repo out and follow the
-      instructions on the [GCP Provisioning page](GCP_Provisioning.md).
-   1. Generate a key for the Terraform service account via
-      `Console -> IAM & admin -> Service Accounts -> terraform -> Create Key` in GCP.
-   1. Save the JSON credentials to `$HOME/master-gcloud-service-key.json` for
-      your production GCP Project, `$HOME/staging-gcloud-service-key.json` for
-      your staging GCP Project, or `$HOME/dev-gcloud-service-key.json` for
-      your dev GCP Project.
-
-      These files should either be stored securely by the administrators
-      of the system, or (even better) deleted after circleci has been seeded with
-      it's data.
 
 
 ## Enabling IAP for OAuth Proxying
