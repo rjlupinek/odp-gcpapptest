@@ -153,27 +153,14 @@ Below is the list of variables required to successfully deploy your project.
 
 ## Google Web Vunerability Scanner
 
-Small walkthrough on how to run this against your deployed AE
+NEEDS CONTENT
 
 
 ## IAP - Authentication for your Application
 
-Enable through GUI
+NEEDS CONTENT
 
 ## Open firewall rules
 
-
-
-
-
-
-
-## Enabling IAP for OAuth Proxying
-
 NEEDS CONTENT
 
-## Enabling Stackdriver logging exports
-
-For each new project, Stackdriver logging exports are enabled by default.
-Logging is enabled at the Organization and Folder level for GSA GCP.
-The GSA ICE team shall setup your project in the appropriate Folders.
