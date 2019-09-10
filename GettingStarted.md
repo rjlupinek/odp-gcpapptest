@@ -153,15 +153,15 @@ Now that you have your project configured in CircleCi all that you need to do is
 
 ## Post Deployment Configuration <a name="s4"></a>
 
-## Google Cloud Security Scanner
+### Google Cloud Security Scanner
 
 Google Cloud Security Scanner can automatically scan and detect four common vulnerabilities, including cross-site-scripting (XSS), Flash injection, mixed content (HTTP in HTTPS), and outdated/insecure libraries.
 
-For complete setup instructions please see 
+* For complete setup instructions please see the following documentation: 
 
-(Security Scanner with App Engine)[https://cloud.google.com/security-scanner/docs/scanning]
+   [Security Scanner with App Engine](https://cloud.google.com/security-scanner/docs/scanning)
 
-## Google Cloud Identity Aware Proxy- Authentication for your Application
+### Google Cloud Identity Aware Proxy- Authentication for your Application
 
 Identity Aware Proxy or IAP provides you with an authentication proxy that sits in front of your application.
 For internal GSA users this provides a near push button configuration of MFA enabled authentication when authorizing users and groups configured in G Suite.
@@ -170,11 +170,11 @@ For internal GSA users this provides a near push button configuration of MFA ena
 
 * Click the toggle that enables IAP for App Engine.
 
-   <img src="doc_img/iap_enable.PNG" width="25%">
+   <img src="doc_img/iap_enable.PNG" width="30%">
 
 * Select the App Engine service you deployed, the template will be pypostgresql, and click the ADD MEMBER BUTTON
 
-   <img src="doc_img/iap_add1.PNG" width="25%">
+   <img src="doc_img/iap_add1.PNG" width="15%">
 
 * Enter one or multiple groups that you want to enable access to your App Engine service by adding them in the New Members field and selecting the Cloud IAP, IAP-secured Web App User role.
 
@@ -183,13 +183,13 @@ For internal GSA users this provides a near push button configuration of MFA ena
 * Browsing to your service will now prompt you to login with a Google account.
 
 
-## Open firewall rules
+### App Engine Firewall
 
 App Engine firewall rules are configured using a basic ACL where you either block or allow traffic based on source IP address.
-Rules are evaluated first from lowest priority to highest priority.  
-The first rule that is evaluated that contains the source address is triggered regardless of if there rules with higher priority values with the same source address.
+Rules are evaluated in order from lowest priority to highest priority.  
+The first rule that is evaluated that contains the source address is triggered regardless of the existance of rules with higher priority values with the same source address.
 
-Default behavior for you deployed application is to allow ... <NEEDS HARDENING AND CLARIFICATION>
+Default behavior for your deployed application is to allow only IP Addresses source from the GSA public networks.
 
 See following link for details on configuring App Engine firewall rules:
 
