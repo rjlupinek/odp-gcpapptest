@@ -153,14 +153,20 @@ Now that you have your project configured in CircleCi all that you need to do is
 
 ## Post Deployment Configuration <a name="s4"></a>
 
-## Google Web Vunerability Scanner
+## Google Cloud Security Scanner
 
-NEEDS CONTENT
+Google Cloud Security Scanner can automatically scan and detect four common vulnerabilities, including cross-site-scripting (XSS), Flash injection, mixed content (HTTP in HTTPS), and outdated/insecure libraries.
 
+For complete setup instructions please see 
 
-## IAP - Authentication for your Application
+(Security Scanner with App Engine)[https://cloud.google.com/security-scanner/docs/scanning]
 
-NEEDS CONTENT
+## Google Cloud Identity Aware Proxy- Authentication for your Application
+
+Identity Aware Proxy or IAP provides you with an authentication proxy that sits in front of your application.
+You essentially create a 
+
+For internal GSA users this provides a near push button configuration of MFA enabled authentication when authorizing users and groups configured for
 
 ## Open firewall rules
 
