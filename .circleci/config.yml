@@ -314,6 +314,7 @@ workflows:
                 # This is the list of branches which will trigger a terraform run.
                 - master      
                 - dev
+                - test
           requires:
             - apply_terraform    
       - test-pypostgresql:

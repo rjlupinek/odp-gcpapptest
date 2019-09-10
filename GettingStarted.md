@@ -123,7 +123,8 @@ The next few sections will describe the data and variables require to successful
 
 Below is the list of variables required to successfully deploy your project.
 
-* Note: For variable with `<BRANCH>` suffix replace this with the GitHub repo branch you wish to tie to your GCP Project ID.   
+* Note: For variables with `<BRANCH>` suffix replace this with the GitHub repo branch you wish to tie to your GCP Project ID.  
+* Note: For variables with `<BRANCH>` suffix, you will need to configure these variables for each branch. 
 * Note: All variables are of the type `string`.
 
 | Variable    |  Description    | 
@@ -148,6 +149,7 @@ Below is the list of variables required to successfully deploy your project.
 
 ### Deploy from Circle
 
+Now that you have your project configured in CircleCi all that you need to do is commit any change and push your changes to either a master, dev, or test branch.
 
 ## Post Deployment Configuration <a name="s4"></a>
 
@@ -162,5 +164,12 @@ NEEDS CONTENT
 
 ## Open firewall rules
 
-NEEDS CONTENT
+App Engine firewall rules are configured using a basic ACL where you either block or allow traffic based on source IP address.
+Rules are evaluated first from lowest priority to highest priority.  
+The first rule that is evaluated that contains the source address is triggered regardless of if there rules with higher priority values with the same source address.
 
+Default behavior for you deployed application is to allow ... <NEEDS HARDENING AND CLARIFICATION>
+
+See following link for details on configuring App Engine firewall rules:
+
+[Controlling Access with Firewall](https://cloud.google.com/appengine/docs/standard/python/creating-firewalls)
