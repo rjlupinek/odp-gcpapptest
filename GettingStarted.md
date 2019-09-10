@@ -164,9 +164,24 @@ For complete setup instructions please see
 ## Google Cloud Identity Aware Proxy- Authentication for your Application
 
 Identity Aware Proxy or IAP provides you with an authentication proxy that sits in front of your application.
-You essentially create a 
+For internal GSA users this provides a near push button configuration of MFA enabled authentication when authorizing users and groups configured in G Suite.
 
-For internal GSA users this provides a near push button configuration of MFA enabled authentication when authorizing users and groups configured for
+* To enable IAP first login to your GCP Console, select your project, Security and the Idendity-Aware Proxy.
+
+* Click the toggle that enables IAP for App Engine.
+
+   <img src="doc_img/iap_enable.PNG" width="25%">
+
+* Select the App Engine service you deployed, the template will be pypostgresql, and click the ADD MEMBER BUTTON
+
+   <img src="doc_img/iap_add1.PNG" width="25%">
+
+* Enter one or multiple groups that you want to enable access to your App Engine service by adding them in the New Members field and selecting the Cloud IAP, IAP-secured Web App User role.
+
+   <img src="doc_img/iap_add2.PNG" width="25%">
+
+* Browsing to your service will now prompt you to login with a Google account.
+
 
 ## Open firewall rules
 
