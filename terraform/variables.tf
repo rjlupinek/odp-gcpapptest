@@ -3,8 +3,11 @@ variable "region" {
   default = "us-east1"
 }
 
-variable "environment" {
-	type = "string"
+  
+variable "cloudsql_tier" {
+  type = "string"
+  default = "db-f1-micro"
+
 }
 
 variable "project_id" {
