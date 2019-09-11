@@ -157,7 +157,7 @@ Google Cloud Security Scanner can automatically scan and detect four common vuln
 Identity Aware Proxy or IAP provides you with an authentication proxy that sits in front of your application.
 For internal GSA users this provides a near push button configuration of MFA enabled authentication when authorizing users and groups configured in G Suite.
 
-  Note: OAuth consent scrren needs to be pre-configured to enable IAP.  
+  Note: OAuth consent screen needs to be pre-configured to enable IAP.  
 
 * To enable IAP first login to your GCP Console, select your project, Security and the Idendity-Aware Proxy.
 
