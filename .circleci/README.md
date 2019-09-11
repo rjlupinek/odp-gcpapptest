@@ -2,7 +2,12 @@
 
 ## Overview <a name="s1"></a>
 
-This CI Pipeline is 
+This CI Pipeline is controlled by the config.yml file.
+
+The intention of this pipeline is to have a 1 to 1 relationship between Google Cloud Project ID and Branch.
+From a configuration standpoint this is accomplished by configuring the 2 key variables per Branch and Project.
+
+See GOOGLE_PROJECT_ID_<BRANCH> and GCLOUD_SERVICE_KEY_<BRANCH> under variables.
 
 ## Table of Contents <a name="s2"></a>
 
