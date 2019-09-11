@@ -29,3 +29,7 @@ variable "cloudsql_username" {
 variable "cloudsql_password" {
   type = "string"
 }
+
+variable "default_firewall_rule" {
+  type = "string"
+}
