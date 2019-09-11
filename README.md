@@ -6,6 +6,9 @@
 This repository contains an Google Cloud App Engine project template.
 The goal of this project is to provide an application team with a template project based on the secure reference architecture developed by the GSA ODP team.
 
+## Status
+
+This project is in it's first release.  This project is expected to change and is provided as is without any SLA, and is available for teams to immediately fork and use as it meets their needs.
 
 ## Project Contents
 
