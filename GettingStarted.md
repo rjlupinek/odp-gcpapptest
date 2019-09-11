@@ -178,6 +178,11 @@ The first rule that is evaluated that contains the source address is triggered r
 
 Default behavior for your deployed application is to allow only IP Addresses source from the GSA public networks.
 
-See following link for details on configuring App Engine firewall rules:
+See following link for details on configuring default Firewall allow rule for this project:
+
+  [Circle CI Variable Configuration](terraform#variables)
+  [Terraform Variable Configuration](.circleci#environment-variables-)
+
+See following link for Google's documentation on configuring App Engine firewall rules:
 
 [Controlling Access with Firewall](https://cloud.google.com/appengine/docs/standard/python/creating-firewalls)
