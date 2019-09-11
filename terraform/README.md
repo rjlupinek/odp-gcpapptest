@@ -30,6 +30,28 @@ This Terraform project will configure the following resources to enable deployme
 
 ## Project Setup <a name="s4"></a>
 
+### Authenication and privileges
+
+* In order to deploy this project you will need a service account with the following roles applied:
+
+```
+	roles/viewer
+	roles/iam.securityReviewer
+	roles/cloudsql.admin
+	roles/cloudsql.viewer
+	roles/appengine.appAdmin
+	roles/appengine.deployer
+	roles/cloudbuild.builds.editor
+	roles/cloudbuild.builds.builder
+	roles/compute.storageAdmin
+	roles/cloudkms.admin
+	roles/cloudkms.cryptoKeyDecrypter
+	roles/cloudscheduler.admin
+	roles/storage.admin
+	roles/logging.admin
+```
+
+* You will need to download the Access Key JSON file for the service account and save it as a file named ``
 
 ### Variables
 
@@ -37,13 +59,20 @@ The following variables need to be set either by setting proper environment vari
 
 | Variable      |  Type  |  Description  |
 |---          |---        |---  | 
-| region |     | string     |  Region to configure resources    |
+| region |   string     |  Region to configure resources    |
 | cloudsql_tier | string    |  Instance type for the Cloud SQL deployment    |
 | project_id | string    | The project ID your application will deploy     |
 | notification_email | string     | Email address that will receive      |
 | cloudsql_db_name | string    |  Cloud SQL database instance name    |
 | cloudsql_username | string    |  postgresql database username     |
 | cloudsql_password  |  string |   postgresql database password |
+
+### Outputs
+
+| Variable      |  Type  |  Description  |
+|---          |---        |---  | 
+| google_sql_database_instance.postgres.connection_name |  string     |  Connection name for postgresql instance    |
+
 
 #### Setting environment variables
 
@@ -52,7 +81,8 @@ With Terraform you can set / override any Terraform variables using the TF_VAR_<
 * NOTE: Setting the environment variables is the suggested method to configure your project when deploying from a CI pipeline.
 
 * Example settings the project variables :
-  ```export TF_VAR_region="us-east1"
+  ```
+  export TF_VAR_region="us-east1"
   export TF_VAR_cloudsql_tier="db-f1-micro"
   export TF_VAR_project_id="super-awesome-project-of-greatness-01"
   export TF_VAR_notification_email="my.team.gsa.gov"
@@ -64,18 +94,43 @@ With Terraform you can set / override any Terraform variables using the TF_VAR_<
 
 ### Remote State 
 
-### init, plan, run
+You will need a Google Storage Bucket to store the remote state.
+
+`gsutil mb gs://gcp-terraform-state-$TF_VAR_project_id || true`
+
+Once you have created a Storage Bucket you can configure it using the `-backend-config` flag or hardcode the bucket name in the `provider.tf` file.
+
+`terraform init -backend-config="bucket=gcp-terraform-state-$TF_VAR_project_id"`
+
+### init, plan, and apply
+
+To init your project you will want to specify the Storage Bucket using the `-backend-config` flag or hardcode the bucket name in the `provider.tf` file.
+
+`terraform init -backend-config="bucket=gcp-terraform-state-$TF_VAR_project_id"`
+
+Run terraform plan
+
+`terraform plan`
+
+Run terraform apply
+
+`terraform apply`
+
 
 ## Modules  <a name="s5"></a>
 
+At this time this Terraform project is not making use of any modules.
+However, there are plans to convert the google_monitoring.tf into a module at some point due to it's reusability.
 
 ### Variables
 
+NA
 
 ### Outputs
 
+NA
 
-## Individual .tf Files <a name="s6"></a>
+
 
 
 

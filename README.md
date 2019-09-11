@@ -95,3 +95,5 @@ https://www.owasp.org/index.php/OWASP_Zed_Attack_Proxy_Project
 
 This application records the visitor's IP address and stores it in a Postgresql.
 It also writes logs of each visit to Stackdriver Logging. 
+
+[Python / Cloud SQL Postgresql Example](cloudsql_postgresql/README.md)
