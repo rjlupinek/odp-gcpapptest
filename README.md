@@ -17,9 +17,6 @@ This project is in it's first release.  This project is expected to change and i
 |---        |---              |
 | .circleci   |   Directory housing the CircleCi CI code  |
 | cloudsql_postgresql  |  Sample Python Flask application that we deploy to GCP App Engine to illustrate  |
-| compliance  |  This dirctory contains all of the compliance documentation for this project |
-| gcp_setup |  Script to configured by the Application team and deployed by the GCAP team   |
-| gcp_setup_secrets     |  Production Terraform project that sets up the Stackdriver Logging for production environment.  |
 | terraform     |  Terraform code that configures all of the GCP resources that are owned by the Application Team, after running gcp_setup scripts, to successfully deploy their application.  |
 
 
