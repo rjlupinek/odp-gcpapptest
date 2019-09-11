@@ -4,8 +4,7 @@
 ## Overview
 
 This repository contains an Google Cloud App Engine project template.
-The goal of this project is to provide an application team with a template to quickly 
-meet their security requirements to speed them along the LATO, and eventually ATO, process.
+The goal of this project is to provide an application team with a template project based on the secure reference architecture developed by the GSA ODP team.
 
 
 ## Project Contents
