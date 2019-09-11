@@ -102,7 +102,7 @@ In this section we describe the process required to configure CircleCI.
 ### Setup Environment Variables and Secrets
 
 For environment variables and secrets we store them all as CircleCI environment variables.
-The next few sections will describe the data and variables require to successfully configure this project.
+The next few sections will describe the data and variables require to successfully configure this project. We use service account in CircleCi to deploy code. If you do not have project owner access, you will have to submit servivenow request and coordinate with ICE team for creating service account and assign required roles.
  
 #### Required data for variables
 
