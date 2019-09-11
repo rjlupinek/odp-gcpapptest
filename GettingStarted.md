@@ -186,8 +186,8 @@ Default behavior for your deployed application is to allow only IP Addresses sou
 
 See following link for details on configuring default Firewall allow rule for this project:
 
-  [Circle CI Variable Configuration](terraform#variables)
-  [Terraform Variable Configuration](.circleci#environment-variables-)
+  [Circle CI Variable Configuration](.circleci#environment-variables-)
+  [Terraform Variable Configuration](terraform#variables)
 
 See following link for Google's documentation on configuring App Engine firewall rules:
 
