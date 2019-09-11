@@ -8,11 +8,6 @@ The goal of this project is to provide an application team with a template to qu
 meet their security requirements to speed them along the LATO, and eventually ATO, process.
 
 
-### Diagram
-
-![diagram of gcp org, project, apps, and services](doc_img/GCPAppEngineReferenceArchitecture.png)
-
-
 ## Project Contents
 
 
@@ -28,23 +23,10 @@ meet their security requirements to speed them along the LATO, and eventually AT
 
 ## Project Setup 
 
-This template provides you with all of the components and steps required to get a example application
-up and running in the GCP App Engine environment.
+This template project provides you with all of the resources required to get a sample App Engine application up and running.
+The project is setup in a way to be easily modified while still providing you with security best practices.
 
-The provided example code is intended to run with little modification, but also be easily modified
-to meet your application teams needs without sacrificing core security requirements.
-
-
-* If you would like to test out how to get GCP going with some example apps, 
-  then follow the [Bootstrap Process](Bootstrap.md).  This is a good place to
-  start just to get your feet wet with GCP and take the example apps for a   
-  test drive. 
-* If you would like to begin customizing this template for your application,
-  then you should consult the [Customization document](Customize.md).
-* Operational procedures and workflows can be found in the 
-  [Workflows documentation](Workflows.md).  This is an overview of how you
-  should do development using a modified gitops system, how to find logs,
-  update the infrastructure, rotate secrets, etc.
+For detail on project setup please refer to the [Getting Started Guide](GettingStarted.md).
 
 
 ## Technologies used  
@@ -95,3 +77,5 @@ https://www.owasp.org/index.php/OWASP_Zed_Attack_Proxy_Project
 
 This application records the visitor's IP address and stores it in a Postgresql.
 It also writes logs of each visit to Stackdriver Logging. 
+
+[Python / Cloud SQL Postgresql Example](cloudsql_postgresql/README.md)

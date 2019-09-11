@@ -74,6 +74,7 @@ jobs:
             export TF_VAR_cloudsql_db_name="${CLOUDSQL_DB}"
             export TF_VAR_cloudsql_username="${CLOUDSQL_USERNAME}"
             export TF_VAR_cloudsql_password="${CLOUDSQL_PASSWORD}"
+            export TF_VAR_default_firewall_rule="${DEFAULT_FIREWALL_RULE}"
             cd terraform && terraform init -backend-config="bucket=gcp-terraform-state-${GOOGLE_PROJECT_ID}" && terraform plan -input=false
 
   apply_terraform:
@@ -96,6 +97,7 @@ jobs:
             export TF_VAR_cloudsql_db_name="${CLOUDSQL_DB}"            
             export TF_VAR_cloudsql_username="${CLOUDSQL_USERNAME}"
             export TF_VAR_cloudsql_password="${CLOUDSQL_PASSWORD}"          
+            export TF_VAR_default_firewall_rule="${DEFAULT_FIREWALL_RULE}"
             cd terraform && terraform init -backend-config="bucket=gcp-terraform-state-${GOOGLE_PROJECT_ID}" && terraform apply -input=false -auto-approve
  
  

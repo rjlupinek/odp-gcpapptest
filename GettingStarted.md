@@ -121,20 +121,7 @@ The next few sections will describe the data and variables require to successful
 
 #### Variable List
 
-Below is the list of variables required to successfully deploy your project.
-
-* Note: For variables with `<BRANCH>` suffix replace this with the GitHub repo branch you wish to tie to your GCP Project ID.  
-* Note: For variables with `<BRANCH>` suffix, you will need to configure these variables for each branch. 
-* Note: All variables are of the type `string`.
-
-| Variable    |  Description    | 
-|---        |---              | 
-| `GOOGLE_PROJECT_ID_<BRANCH>` | Project you will be deploying your app into when pushing changes to your branch set in the suffix `<BRANCH>` | 
-| `GCLOUD_SERVICE_KEY_<BRANCH>`  |  Complete contents of the access key for your deployment's `terraform@<PROJECT_ID>` service account for the Project ID you set in the `GOOGLE_PROJECT_ID_<BRANCH>` variable   | 
-| `NOTIFICATION_EMAIL` | Email that you wish to receive monitoring alerts | 
-| `CLOUDSQL_DB` | Postgres Database Instance Name  | 
-| `CLOUDSQL_USERNAME` | Username for basic CloudSQL authentication | 
-| `CLOUDSQL_PASSWORD` | Password for basic CloudSQL authentication |  
+For a details on the environment variables required see the [CircleCI README](.circleci/README.md) for more details.
 
 #### How to configure CircleCI Environment variables
 
