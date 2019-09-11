@@ -55,7 +55,7 @@ This Terraform project will configure the following resources to enable deployme
 
 ### Variables
 
-The following variables need to be set either by setting proper environment variables or editing the variables.tf file:
+The following variables need to be set either by setting the proper environment variables or editing the variables.tf file:
 
 | Variable      |  Type  |  Description  |
 |---          |---        |---  | 
@@ -66,6 +66,7 @@ The following variables need to be set either by setting proper environment vari
 | cloudsql_db_name | string    |  Cloud SQL database instance name    |
 | cloudsql_username | string    |  postgresql database username     |
 | cloudsql_password  |  string |   postgresql database password |
+| default_firewall_rule | string | Default IPV4 network block you wish to allow traffic in CIDR notation |
 
 ### Outputs
 
@@ -89,6 +90,7 @@ With Terraform you can set / override any Terraform variables using the TF_VAR_<
   export TF_VAR_cloudsql_db_name="pypostgresql"
   export TF_VAR_cloudsql_username="postgres"
   export TF_VAR_cloudsql_password="fGw23!4324fDswrf*&"
+  export TF_VAR_default_firewall_rule="172.16.0.0/12"
   ```
 
 

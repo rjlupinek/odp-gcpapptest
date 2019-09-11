@@ -27,6 +27,7 @@ This CI Pipeline is
 | `CLOUDSQL_DB` | Postgres Database Instance Name  | 
 | `CLOUDSQL_USERNAME` | Username for basic CloudSQL authentication | 
 | `CLOUDSQL_PASSWORD` | Password for basic CloudSQL authentication |  
+| `DEFAULT_FIREWALL_RULE` | Default IPV4 network block you wish to allow traffic in CIDR notation |
 
 ## Jobs <a name="s4"></a>
 
