@@ -20,7 +20,8 @@ The workflow required to accomplish this is outlined below:
 A core concept of deploying an AppEngine application using this template is that for each environment or branch that you wish to deploy, you will need a separate GCP Project.
 
 * GCP Appengine projects will be provisioned, built, deployed, tested and promoted using CirclCi.
-* Within CircleCI, GCP Projects are linked to repository branches by assigning branch specific environment variables that contain the Project ID
+* Within CircleCI, GCP Projects are linked to repository branches by assigning branch specific environment variables that contain the Project ID.
+   * NOTE: All variables in below examples are case sensitive.
    * Example for dev branch: `GOOGLE_PROJECT_ID_dev=<MY_DEV_GCP_PROJECT>`
    * Example for master branch: `GOOGLE_PROJECT_ID_master=<MY_DEV_GCP_PROJECT>`
       * Note: The `_master` in `GOOGLE_PROJECT_ID_master` is used to identify which branch you are configuring.
