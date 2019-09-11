@@ -12,7 +12,7 @@ The purpose of this project is as follows:
 * Illustrate reading and writing to Cloud SQL Database
 * Illustrate logging using the Stackdriver Client Libraries
 * Illustrate configuration required to get your application launched using App Engine.
-
+ 
 
 Project contents
 ----------

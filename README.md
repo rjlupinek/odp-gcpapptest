@@ -10,8 +10,7 @@ meet their security requirements to speed them along the LATO, and eventually AT
 
 ### Diagram
 
-![diagram of gcp org, project, apps, and services](GCPAppEngineReferenceArchitecture.png)
-
+![diagram of gcp org, project, apps, and services](doc_img/GCPAppEngineReferenceArchitecture.png)
 
 
 ## Project Contents
@@ -27,7 +26,7 @@ meet their security requirements to speed them along the LATO, and eventually AT
 | terraform     |  Terraform code that configures all of the GCP resources that are owned by the Application Team, after running gcp_setup scripts, to successfully deploy their application.  |
 
 
-## Project Setup
+## Project Setup 
 
 This template provides you with all of the components and steps required to get a example application
 up and running in the GCP App Engine environment.
@@ -36,9 +35,9 @@ The provided example code is intended to run with little modification, but also 
 to meet your application teams needs without sacrificing core security requirements.
 
 
-* If you would like to test out how to get GCP going with some example apps,
+* If you would like to test out how to get GCP going with some example apps, 
   then follow the [Bootstrap Process](Bootstrap.md).  This is a good place to
-  start just to get your feet wet with GCP and take the example apps for a
+  start just to get your feet wet with GCP and take the example apps for a   
   test drive. 
 * If you would like to begin customizing this template for your application,
   then you should consult the [Customization document](Customize.md).
@@ -50,13 +49,6 @@ to meet your application teams needs without sacrificing core security requireme
 
 ## Technologies used  
 
-### Gitops/Infrastructure As Code
-
-This is less a technology, and more of a way of managing a system only using
-code.  The idea is that aside from perhaps some one-off startup tasks, almost
-everything is managed by checking in code and moving it between branches.
-This ensures that all changes to the system are contained in git, and thus
-may be rolled back or reconstructed in a Disaster Recovery scenario.
 
 ### Google App Engine
 App Engine is a simple way to deploy applications that will automatically scale
