@@ -34,20 +34,23 @@ Initial GCP project setup requires interfacing with the GSA ICE team as they wil
 
 ### Service Now Tickets
 
+#### Note: ServiceNow ticket links and catalogs are still being developed. We will update links once catalog request are finalized. As of now this process is mannula and needs coordination with ICE team. 
+
 The application team will be responsible submitting a service now ticket for the following configurations:
 
 * Pilot project request
    * Request a pilot project when you are first setting up your project in GCP and need to work through permissions and API requirements.
-   * Specific team members will receive project ownership privileges. 
-   * This service request will generate ticket that is sent to the ICE / GCAP team.
-   * Three separate GCP Projects will be created with the same groups and permissions applied.
+   * Specific team members will receive project ownership privileges (only in pilot).
+   * This service request will generate ticket that is sent to the ICE / GCAP team and necessary approval process.
+   *
 * Dev, Test, Prod projects request
-   * Request these projects to be setup when you are ready to deploy your application in production.
-   * This service request will generate ticket that is sent to the ICE / GCAP team. 
-   * Three separate GCP Projects will be created with the same groups and permissions applied.
-   * Your team will not receive project ownership privileges.
-   * Specific team members will receive the priveleges required to deploy this template application into App Engine.
+   * Request these projects to be setup when you are ready to deploy your application in dev, test or production.
+   * This service request will generate ticket that is sent to the ICE / GCAP team and necessary approvals. 
+   * Three separate GCP Projects (dev, test and prod will be created with the same groups and permissions applied.
+   * Your team will not receive project ownership privileges. IAM and roles management is shared responsibility betweeen ICE and application team.
+   * Roles and permission needs to be adjusted for group or servive account as needed by submitting service now tickets. We recomment using pilot environment to hash out services, api, roles and permission needed in higher environment.
    * Additional privilege changes must be provided in separate service requests.
+ 
 
  
 
