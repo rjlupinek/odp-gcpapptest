@@ -307,7 +307,7 @@ jobs:
                 echo cleaned up application: ${APP_NAME} verison: ${version}
               done
             else
-              echo no ${APP_NAME} versions to clean up
+              echo no ${APP_NAME} versions to clean up...
             fi
 
             #Perform the clean up of the unused images
@@ -318,7 +318,7 @@ jobs:
                 gcloud container images delete $REGISTRY/$APP_NAME.$image --force-delete-tags --quiet || tru
               done
             else
-              echo no ${APP_NAME} versions to clean up
+              echo no ${APP_NAME} images to clean up...
             fi
 
 #These are the workflows that define what CircleCI actually does.
