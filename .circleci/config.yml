@@ -276,17 +276,51 @@ jobs:
           name: Clean up old versions
           no_output_timeout: 30m
           command: |
-            # clean up old versions (leave the last two, so you can roll back)
-            VERSIONS=$(gcloud app versions list --service=${APP_NAME} --format=list | sort -rn | tail -n +3 | sed 's/^.*\///') || true
-            if [ ! -z "${VERSIONS}" ] ; then
-              #Temporarily keeping old version
-              #gcloud app versions delete --service=${APP_NAME} ${VERSIONS} --quiet || true
-              echo cleaned up ${APP_NAME} ${VERSIONS}
+            #Keep only the applications and images that are no longer needed 
+
+            #Registry name you are going to keep
+            export REGISTRY="us.gcr.io/$GOOGLE_PROJECT_ID/appengine"
+            #How many versions of the application to keep
+            export KEEP="2"
+            #Files that contain the lists of images, application versions, and application versions to keep
+            export IMAGE_VERSIONS=/tmp/IMAGE_VERSIONS
+            export APP_VERSIONS=/tmp/APP_VERSIONS
+            export KEEP_VERSIONS=/tmp/KEEP_VERSIONS
+
+            #Get all existing image version for this application
+            gcloud container images list --repository $REGISTRY --filter="$APP_NAME." | sort -n | grep -v -e "^NAME" | sed 's/^.*\.//'  > $IMAGE_VERSIONS
+            #Get the lastest n number of application versions where n = $KEEP 
+            gcloud app versions list --service=${APP_NAME} --format=list | sort -n | tail -n $KEEP | sed 's/^.*\///'  > $KEEP_VERSIONS
+            #Get the complete list of applications
+            gcloud app versions list --service=${APP_NAME} --format=list | sort -n |  sed 's/^.*\///' > $APP_VERSIONS
+
+            #All image versions minus those tied to the application versions you wish to keep
+            export DELETE_IMAGES=$(comm -23  $IMAGE_VERSIONS $KEEP_VERSIONS)
+            #All application versions minus those your wish to keep
+            export DELETE_APP=$(comm -23  $APP_VERSIONS $KEEP_VERSIONS)
+
+            #Perform the clean up of the application version
+            if [ ! -z "${DELETE_APP}" ] ; then
+              for version in $DELETE_APP
+              do
+                gcloud app versions delete --service=${APP_NAME} ${version} --quiet || true
+                echo cleaned up application: ${APP_NAME} verison: ${version}
+              done
             else
               echo no ${APP_NAME} versions to clean up
             fi
 
- 
+            #Perform the clean up of the unused images
+            if [ ! -z "${DELETE_IMAGES}" ] ; then
+              for image in $DELETE_IMAGES
+              do
+                echo "Deleting image: $REGISTRY/$APP_NAME.$image"
+                gcloud container images delete $REGISTRY/$APP_NAME.$image --force-delete-tags --quiet || tru
+              done
+            else
+              echo no ${APP_NAME} versions to clean up
+            fi
+
 #These are the workflows that define what CircleCI actually does.
 workflows:
   version: 2
