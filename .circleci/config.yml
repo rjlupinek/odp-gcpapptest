@@ -288,11 +288,11 @@ jobs:
             export KEEP_VERSIONS=/tmp/KEEP_VERSIONS
 
             #Get all existing image version for this application
-            gcloud container images list --repository $REGISTRY --filter="$APP_NAME." | sort -n | grep -v -e "^NAME" | sed 's/^.*\.//'  > $IMAGE_VERSIONS
+            gcloud container images list --repository $REGISTRY --filter="$APP_NAME." | sort -n | grep -v -e "^NAME" | sed 's/^.*\.//'  > $IMAGE_VERSIONS || true
             #Get the lastest n number of application versions where n = $KEEP 
-            gcloud app versions list --service=${APP_NAME} --format=list | sort -n | tail -n $KEEP | sed 's/^.*\///'  > $KEEP_VERSIONS
+            gcloud app versions list --service=${APP_NAME} --format=list | sort -n | tail -n $KEEP | sed 's/^.*\///'  > $KEEP_VERSIONS || true
             #Get the complete list of applications
-            gcloud app versions list --service=${APP_NAME} --format=list | sort -n |  sed 's/^.*\///' > $APP_VERSIONS
+            gcloud app versions list --service=${APP_NAME} --format=list | sort -n |  sed 's/^.*\///' > $APP_VERSIONS || true
 
             #All image versions minus those tied to the application versions you wish to keep
             export DELETE_IMAGES=$(comm -23  $IMAGE_VERSIONS $KEEP_VERSIONS)
