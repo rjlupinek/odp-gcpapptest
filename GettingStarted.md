@@ -157,7 +157,7 @@ Google Cloud Security Scanner can automatically scan and detect four common vuln
 Identity Aware Proxy or IAP provides you with an authentication proxy that sits in front of your application.
 For internal GSA users this provides a near push button configuration of MFA enabled authentication when authorizing users and groups configured in G Suite.
 
-  Note: OAuth consent scrren needs to be pre-configured to enable IAP.  
+  Note: OAuth consent screen needs to be pre-configured to enable IAP.  
 
 * To enable IAP first login to your GCP Console, select your project, Security and the Idendity-Aware Proxy.
 
@@ -186,8 +186,8 @@ Default behavior for your deployed application is to allow only IP Addresses sou
 
 See following link for details on configuring default Firewall allow rule for this project:
 
-  [Circle CI Variable Configuration](terraform#variables)
-  [Terraform Variable Configuration](.circleci#environment-variables-)
+  [Circle CI Variable Configuration](.circleci#environment-variables-)
+  [Terraform Variable Configuration](terraform#variables)
 
 See following link for Google's documentation on configuring App Engine firewall rules:
 
