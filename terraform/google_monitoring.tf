@@ -67,7 +67,7 @@ resource "google_monitoring_alert_policy" "container_vulnerabilities" {
         }
         comparison = "COMPARISON_GT"
         duration = "60s"
-        filter = "metric.type=\"logging.googleapis.com/user/${google_logging_metric.container_vulnerabilities.name}\" AND resource.type=\"global\""
+        filter = "metric.type=\"logging.googleapis.com/user/${google_logging_metric.container_vulnerabilities.name}\" AND resource.type=\"audited_resource\""
         threshold_value = 0
         trigger {
           count = 1
