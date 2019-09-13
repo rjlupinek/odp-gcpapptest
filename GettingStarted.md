@@ -152,6 +152,25 @@ Google Cloud Security Scanner can automatically scan and detect four common vuln
 
    [Security Scanner with App Engine](https://cloud.google.com/security-scanner/docs/scanning)
 
+
+### Google Cloud Container Analysis and Vunerability Scanning
+
+Google Cloud Container Analysis and Vunerability Scanning will automatically scan new images placed in the Google Cloud Registry.  When ever deploy your App Engine application it creates a new image.
+
+* Login to your GCP console, select Container Registers and Settings.
+
+* Click Enable Vulnerability Scanning to enable Vulnerability Scanning.
+
+#### Notes:
+
+You will now be able to see new vulnerabilities by viewing your images.
+We also setup default alerting for your project named "container-vulnerabilities" which can be viewed under Monitoring in the GCP Console.
+
+
+* For complete setup instructions please see the following documentation: 
+
+   [Container Analysis](https://cloud.google.com/container-registry/docs/get-image-vulnerabilities)
+
 ### Google Cloud Identity Aware Proxy- Authentication for your Application
 
 Identity Aware Proxy or IAP provides you with an authentication proxy that sits in front of your application.
@@ -183,6 +202,10 @@ Rules are evaluated in order from lowest priority to highest priority.
 The first rule that is evaluated that contains the source address is triggered regardless of the existance of rules with higher priority values with the same source address.
 
 Default behavior for your deployed application is to allow only IP Addresses source from the GSA public networks.
+
+#### Notes:
+
+We also setup default alerting for changes to your project's firewall named "container-vulnerabilities", which can be viewed under Monitoring in the GCP Console.
 
 See following link for details on configuring default Firewall allow rule for this project:
 
