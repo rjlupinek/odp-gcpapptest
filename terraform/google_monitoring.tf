@@ -1,4 +1,4 @@
-#Configure monitoring notification channel for email.
+# Configure monitoring notification channel for email.
 
 resource "google_monitoring_notification_channel" "email" {
   display_name = "Test Notification Channel"
@@ -8,9 +8,10 @@ resource "google_monitoring_notification_channel" "email" {
   }
 }
 
+# Alert on firewall changes
 resource "google_logging_metric" "firewall_change" {
   name = "firewall-change"
-  filter = "logName:\"projects/i-ise-04302019-playground/logs/cloudaudit.googleapis.com%2Factivity\" AND protoPayload.methodName:\"google.appengine.v1.Firewall.\""
+  filter = "logName:\"projects/${var.project_id}/logs/cloudaudit.googleapis.com%2Factivity\" AND protoPayload.methodName:\"google.appengine.v1.Firewall.\""
   metric_descriptor {
     metric_kind = "DELTA"
     value_type = "INT64"
@@ -39,6 +40,43 @@ resource "google_monitoring_alert_policy" "firewall_change"{
   notification_channels = [ "${google_monitoring_notification_channel.email.name}" ]  
   documentation {
     content = "# Warning - CIS Alert Triggered\n\n# Error message:\n\nfirewall-change triggered."
+    mime_type = "text/markdown"
+  }
+}
+
+# Alert on container analysis vulnerabilities NOT low
+
+resource "google_logging_metric" "container_vulnerabilities" {
+  name = "firewall-change"
+  filter = "logName: projects/${var.project_id}/logs/cloudaudit.googleapis.com%2Fdata_access AND protoPayload.serviceName: containeranalysis.googleapis.com AND protoPayload.methodName: grafeas.v1beta1.GrafeasV1Beta1.CreateOccurrence AND NOT protoPayload.response.vulnerability.severity: LOW"
+  metric_descriptor {
+    metric_kind = "DELTA"
+    value_type = "INT64"
+  }
+}
+
+resource "google_monitoring_alert_policy" "container_vulnerabilities" {
+  display_name = "container-vulnerabilities"
+  combiner= "OR"
+  conditions {
+      display_name = "container-vulnerabilities"
+      condition_threshold {
+        aggregations {
+          alignment_period = "60s"
+          per_series_aligner = "ALIGN_SUM"
+        }
+        comparison = "COMPARISON_GT"
+        duration = "60s"
+        filter = "metric.type=\"logging.googleapis.com/user/${google_logging_metric.container_vulnerabilities.name}\" AND resource.type=\"global\""
+        threshold_value = 0
+        trigger {
+          count = 1
+        }
+      }
+  }
+  notification_channels = [ "${google_monitoring_notification_channel.email.name}" ]  
+  documentation {
+    content = "# Warning - Container vunerabilities found!\n\n# Error message:\n\nVunerabilities found > than LOW in one of your containers."
     mime_type = "text/markdown"
   }
 }
