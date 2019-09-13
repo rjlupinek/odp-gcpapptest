@@ -153,9 +153,9 @@ Google Cloud Security Scanner can automatically scan and detect four common vuln
    [Security Scanner with App Engine](https://cloud.google.com/security-scanner/docs/scanning)
 
 
-### Google Cloud Container Analysis and Vunerability Scanning
+### Google Cloud Container Analysis and Vulnerability Scanning
 
-Google Cloud Container Analysis and Vunerability Scanning will automatically scan new images placed in the Google Cloud Registry.  When ever deploy your App Engine application it creates a new image.
+Google Cloud Container Analysis and Vulnerability Scanning will automatically scan new images placed in the Google Cloud Registry.  When ever deploy your App Engine application it creates a new image.
 
 
 * Login to your GCP console, select Container Registers and Settings.
