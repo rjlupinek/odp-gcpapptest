@@ -48,7 +48,7 @@ resource "google_monitoring_alert_policy" "firewall_change"{
 
 resource "google_logging_metric" "container_vulnerabilities" {
   name = "container-vulnerabilities"
-  filter = "logName: projects/${var.project_id}/logs/cloudaudit.googleapis.com%2Fdata_access AND protoPayload.serviceName: containeranalysis.googleapis.com AND protoPayload.methodName: grafeas.v1beta1.GrafeasV1Beta1.CreateOccurrence AND NOT protoPayload.response.vulnerability.severity: LOW"
+  filter = "logName: projects/${var.project_id}/logs/cloudaudit.googleapis.com%2Fdata_access AND protoPayload.serviceName: containeranalysis.googleapis.com AND protoPayload.methodName: grafeas.v1beta1.GrafeasV1Beta1.CreateOccurrence AND NOT protoPayload.response.vulnerability.severity: INFO AND NOT protoPayload.response.vulnerability.severity: LOW"
   metric_descriptor {
     metric_kind = "DELTA"
     value_type = "INT64"
