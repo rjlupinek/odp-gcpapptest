@@ -164,7 +164,7 @@ Google Cloud Container Analysis and Vunerability Scanning will automatically sca
 
 * Click Enable Vulnerability Scanning to enable Vulnerability Scanning.
 
-   <img src="doc_img/container_1.PNG" width="25%">
+   <img src="doc_img/container_2.PNG" width="25%">
 
 #### Notes:
 
