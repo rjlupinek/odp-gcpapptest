@@ -159,7 +159,11 @@ Google Cloud Container Analysis and Vunerability Scanning will automatically sca
 
 * Login to your GCP console, select Container Registers and Settings.
 
+   <img src="doc_img/container_1.PNG" width="25%">
+
 * Click Enable Vulnerability Scanning to enable Vulnerability Scanning.
+
+   <img src="doc_img/container_1.PNG" width="25%">
 
 #### Notes:
 
