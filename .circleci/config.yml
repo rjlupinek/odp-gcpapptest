@@ -125,7 +125,7 @@ jobs:
             . "${BASH_ENV}" 
 
             #Set the application name
-            export APP_NAME="pypostgresql"
+            export APP_NAME="default"
 
             #Set the number of intial instances to start to support the application.
             if [ "${CIRCLE_BRANCH}" = "master" ] ; then
