@@ -203,8 +203,8 @@ jobs:
       - persist_to_workspace:
           root: /tmp/workspace
           paths:
-            - ${APP_NAME}_version
-            - ${APP_NAME}_url
+            - default_version
+            - default_url
 
   test-pypostgresql:
     docker:
