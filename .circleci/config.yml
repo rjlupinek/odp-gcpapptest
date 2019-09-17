@@ -104,6 +104,8 @@ jobs:
   deploy-pypostgresql:
     docker:
       - image: google/cloud-sdk
+        environment:
+          APP_NAME: default        
 
     steps:
       - attach_workspace:
@@ -124,8 +126,6 @@ jobs:
             #Load CIRCLE  environment variables as bash environment variables
             . "${BASH_ENV}" 
 
-            #Set the application name
-            export APP_NAME="default"
 
             #Set the number of intial instances to start to support the application.
             if [ "${CIRCLE_BRANCH}" = "master" ] ; then
@@ -203,12 +203,14 @@ jobs:
       - persist_to_workspace:
           root: /tmp/workspace
           paths:
-            - pypostgresql_version
-            - pypostgresql_url
+            - ${APP_NAME}_version
+            - ${APP_NAME}_url
 
   test-pypostgresql:
     docker:
       - image: google/cloud-sdk
+        environment:
+          APP_NAME: default        
     steps:
       - checkout
       - attach_workspace:
@@ -217,13 +219,14 @@ jobs:
           name: Test the app!
           command: |
             #Set the application name
-            export APP_NAME="pypostgresql"
             echo "run tests here against $(cat /tmp/workspace/${APP_NAME}_url) with an ${AUTH_HEADER} header"
 
 
   owaspzap-pypostgresql:
     docker:
       - image: owasp/zap2docker-weekly
+        environment:
+          APP_NAME: default        
     steps:
       - checkout
       - attach_workspace:
@@ -232,8 +235,7 @@ jobs:
           name: Run OWASP Zap against the app! (fails if the test takes more than 30 minutes)
           no_output_timeout: 30m
           command: |
-            #Set the application name
-            export APP_NAME="pypostgresql"
+
 
             # if we are in production, do not do form posts, because they can potentially create cruft in the db.
             if [ "${CIRCLE_BRANCH}" = "master" ] ; then
@@ -257,7 +259,7 @@ jobs:
     docker:
       - image: google/cloud-sdk
         environment:
-          APP_NAME: pypostgresql      
+          APP_NAME: default     
     steps:
       - run:
           <<: *set-gcp-init-vars
