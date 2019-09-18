@@ -1,6 +1,6 @@
 # Getting Started Guide
 
-## Overview 
+## Overview  
 
 This guide will provide you with the steps required to get your project up and running.
 
